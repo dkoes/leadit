@@ -16,6 +16,7 @@
 #include <ANN/ANN.h>
 #include "Timer.h"
 using namespace lemon;
+using namespace boost;
 
 void MatcherPacker::pack(const DataViewer* dv, vector<Cluster>& clusters) const
 {

@@ -25,6 +25,7 @@
 								<option id="gnu.cpp.compiler.exe.debug.option.debugging.level.1086469663" name="Debug Level" superClass="gnu.cpp.compiler.exe.debug.option.debugging.level" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.1546148091" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/shapedb}&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/local/include/rdkit"/>
 									<listOptionValue builtIn="false" value="/usr/local/include/openbabel-2.0/"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}}&quot;"/>
 									<listOptionValue builtIn="false" value="/usr/include/eigen3/"/>
@@ -40,6 +41,17 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.553474173" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
 								<option id="gnu.cpp.link.option.libs.1176728914" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="boost_iostreams"/>
+									<listOptionValue builtIn="false" value="RDGeneral"/>
+									<listOptionValue builtIn="false" value="DataStructs"/>
+									<listOptionValue builtIn="false" value="RDGeometryLib"/>
+									<listOptionValue builtIn="false" value="Depictor"/>
+									<listOptionValue builtIn="false" value="SubstructMatch"/>
+									<listOptionValue builtIn="false" value="ChemTransforms"/>
+									<listOptionValue builtIn="false" value="SmilesParse"/>
+									<listOptionValue builtIn="false" value="GraphMol"/>
+									<listOptionValue builtIn="false" value="Subgraphs"/>
+									<listOptionValue builtIn="false" value="ChemReactions"/>
+									<listOptionValue builtIn="false" value="FileParsers"/>
 									<listOptionValue builtIn="false" value="ann"/>
 									<listOptionValue builtIn="false" value="openbabel"/>
 									<listOptionValue builtIn="false" value="boost_system"/>
@@ -47,6 +59,7 @@
 								</option>
 								<option id="gnu.cpp.link.option.paths.500839950" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/local/lib"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/rdkit"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.905093677" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -84,11 +97,12 @@
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.exe.release.1746879285" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.release"/>
 							<builder buildPath="${workspace_loc:/leadmaker}/Release" id="cdt.managedbuild.target.gnu.builder.exe.release.696398427" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.exe.release"/>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.base.1515877424" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.1961702109" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release">
+							<tool command="g++" commandLinePattern="${COMMAND} ${FLAGS} ${OUTPUT_FLAG} ${OUTPUT_PREFIX}${OUTPUT} ${INPUTS}" id="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release.1961702109" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.exe.release">
 								<option id="gnu.cpp.compiler.exe.release.option.optimization.level.1640530583" name="Optimization Level" superClass="gnu.cpp.compiler.exe.release.option.optimization.level" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.exe.release.option.debugging.level.605796076" name="Debug Level" superClass="gnu.cpp.compiler.exe.release.option.debugging.level" value="gnu.cpp.compiler.debugging.level.none" valueType="enumerated"/>
 								<option id="gnu.cpp.compiler.option.include.paths.821515783" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/shapedb}&quot;"/>
+									<listOptionValue builtIn="false" value="/usr/local/include/rdkit"/>
 									<listOptionValue builtIn="false" value="/usr/local/include/openbabel-2.0/"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}}&quot;"/>
 									<listOptionValue builtIn="false" value="/usr/include/eigen3/"/>
@@ -104,6 +118,17 @@
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.release.1430675003" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.release">
 								<option id="gnu.cpp.link.option.libs.570978495" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
 									<listOptionValue builtIn="false" value="boost_iostreams"/>
+									<listOptionValue builtIn="false" value="RDGeneral"/>
+									<listOptionValue builtIn="false" value="DataStructs"/>
+									<listOptionValue builtIn="false" value="RDGeometryLib"/>
+									<listOptionValue builtIn="false" value="Depictor"/>
+									<listOptionValue builtIn="false" value="SubstructMatch"/>
+									<listOptionValue builtIn="false" value="ChemTransforms"/>
+									<listOptionValue builtIn="false" value="SmilesParse"/>
+									<listOptionValue builtIn="false" value="GraphMol"/>
+									<listOptionValue builtIn="false" value="Subgraphs"/>
+									<listOptionValue builtIn="false" value="ChemReactions"/>
+									<listOptionValue builtIn="false" value="FileParsers"/>
 									<listOptionValue builtIn="false" value="ann"/>
 									<listOptionValue builtIn="false" value="openbabel"/>
 									<listOptionValue builtIn="false" value="boost_system"/>
@@ -111,6 +136,7 @@
 								</option>
 								<option id="gnu.cpp.link.option.paths.2068534685" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" valueType="libPaths">
 									<listOptionValue builtIn="false" value="/usr/local/lib"/>
+									<listOptionValue builtIn="false" value="/usr/local/lib/rdkit"/>
 								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1974359534" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>

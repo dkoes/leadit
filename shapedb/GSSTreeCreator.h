@@ -61,7 +61,6 @@
 #include "TopDownPartitioner.h"
 #include "packers/Packer.h"
 
-using namespace boost;
 using namespace std;
 
 #include "WorkFile.h"
@@ -107,6 +106,8 @@ public:
 		return packer->getPack();
 	}
 };
+
+namespace filesystem = boost::filesystem;
 
 class GSSTreeCreator
 {

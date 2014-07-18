@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 
+using namespace boost;
 using namespace boost::interprocess;
 
 WorkFile::WorkFile(const char *name): map(NULL)

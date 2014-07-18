@@ -30,6 +30,7 @@
  */
 class TriChecker
 {
+	typedef OpenBabel::vector3 vector3;
 	double probeSq; //probe radius squared
 	double h_ijk; //height of probe
 	vector3 pc1, pc2; //probe centers

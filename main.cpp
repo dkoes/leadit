@@ -29,30 +29,156 @@
  */
 
 #include "CommandLine2/CommandLine.h"
+#include <string>
+#include <iostream>
 
+#include "Reaction.h"
+#include "DatabaseCreator.h"
+
+using namespace std;
 
 enum CommandEnum
 {
-	create,
-	add,
-	index,
-	search,
-	status,
-	server
+	CreateDatabase,
+	AddMolecules,
+	SearchDatabase,
+	DatabaseInfo,
+	Server
 };
 
 cl::opt<CommandEnum> Command(cl::desc("Operation to perform:"), cl::Required,
-		cl::values(clEnumVal(create, "Create a new reaction database"),
-				clEnumVal(add, "Add conformers to database (invalidates indices)"),
-				clEnumVal(index,"Index conformer information"),
-				clEnumVal(search,"Search database for leadmaker query"),
-				clEnumVal(status,"Print database information"),
-				clEnumVal(server,"Start leadmaker server"),
+		cl::values(clEnumVal(CreateDatabase, "Create a new reaction database"),
+				clEnumVal(AddMolecules,
+						"Add conformers to database (regenerates indices)"),
+				clEnumVal(SearchDatabase, "Search database for leadmaker query"),
+				clEnumVal(DatabaseInfo, "Print database information"),
+				clEnumVal(Server, "Start leadmaker server"),
 				clEnumValEnd));
+cl::list<string> Databases("dbdir", cl::desc("database directory(s)"));
+cl::list<string> inputFiles("in", cl::desc("input file(s)"));
+cl::list<string> outputFiles("out", cl::desc("output file(s)"));
+
+cl::opt<string> reactionFile("rxn", cl::desc("reaction SMARTS file"));
+
+
+//create a database using command line arguments
+static void handle_create()
+{
+	if(Databases.size() == 0)
+	{
+		cerr << "Require database for create\n";
+		exit(-1);
+	}
+	else if(Databases.size() > 1)
+	{
+		cerr << "Only single database is supported for create\n";
+		exit(-1);
+	}
+
+	filesystem::path dbpath(Databases[0]);
+
+	//reaction file
+	filesystem::path rxnf(reactionFile);
+	if(!filesystem::exists(rxnf))
+	{
+		cerr << rxnf << " reaction file does not exist\n";
+		exit(-1);
+	}
+	Reaction rxn(rxnf);
+	if(!rxn.isValid())
+	{
+		cerr << "Invalid reaction\n";
+		exit(-1);
+	}
+	cout << rxn;
+	//open database for creation
+	DatabaseCreator dbcreator(dbpath, rxn);
+
+	if(!dbcreator.isValid())
+	{
+		cerr << "Error creating database\n";
+		exit(-1);
+	}
+	for(unsigned i = 0, n = inputFiles.size(); i < n; i++)
+	{
+		filesystem::path infile(inputFiles[i]);
+		if(!filesystem::exists(infile))
+		{
+			cerr << infile << " does not exists. Skipping.\n";
+			continue;
+		}
+		dbcreator.add(infile);
+	}
+
+	//create indices
+	dbcreator.finalize();
+}
+
+//append to database using command line argument values
+static void handle_add()
+{
+	if(Databases.size() == 0)
+	{
+		cerr << "Require database for add\n";
+		exit(-1);
+	}
+	else if(Databases.size() > 1)
+	{
+		cerr << "Only single database is supported for add\n";
+		exit(-1);
+	}
+
+	filesystem::path dbpath(Databases[0]);
+	if(!filesystem::exists(dbpath))
+	{
+		cerr << dbpath << " does not exist\n";
+		exit(-1);
+	}
+	//open database for appending
+	DatabaseCreator dbcreator(dbpath);
+
+
+	if(!dbcreator.isValid())
+	{
+		cerr << "Error opening database\n";
+		exit(-1);
+	}
+
+	for(unsigned i = 0, n = inputFiles.size(); i < n; i++)
+	{
+		filesystem::path infile(inputFiles[i]);
+		if(!filesystem::exists(infile))
+		{
+			cerr << infile << " does not exists. Skipping.\n";
+			continue;
+		}
+		dbcreator.add(infile);
+	}
+
+	//create indices
+	dbcreator.finalize();
+}
 
 
 int main(int argc, char *argv[])
 {
 	cl::ParseCommandLineOptions(argc, argv);
 
+	switch (Command)
+	{
+		case CreateDatabase:
+			handle_create();
+			break;
+		case AddMolecules:
+			handle_add();
+			break;
+		case SearchDatabase: //f
+		case DatabaseInfo: //f
+		case Server: //f
+		default:
+			cerr << "Command not yet implemented\n";
+			return -1;
+	}
+
+	return 0;
 }

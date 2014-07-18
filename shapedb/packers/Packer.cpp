@@ -18,6 +18,7 @@
 #include <ANN/ANN.h>
 
 using namespace lemon;
+using namespace boost;
 
 //return the distance between two clusters, this may be configurable to other metrics
 float Packer::clusterDistance(const DataViewer* D, const Cluster& a,

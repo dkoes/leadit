@@ -37,6 +37,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <GraphMol/BondIterators.h>
 
 using namespace RDKit;
+using namespace boost;
+using namespace OpenBabel;
 
 //copy data needed to write out pmol from obmol
 void PMolCreator::copyFrom(OBMol& mol, bool deleteH)
