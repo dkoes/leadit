@@ -69,13 +69,10 @@ static void handle_create()
 		cerr << "Require database for create\n";
 		exit(-1);
 	}
-	else if(Databases.size() > 1)
-	{
-		cerr << "Only single database is supported for create\n";
-		exit(-1);
-	}
 
-	filesystem::path dbpath(Databases[0]);
+	vector<filesystem::path> dbpaths;
+	for(unsigned i = 0, n = Databases.size(); i < n; i++)
+		dbpaths.push_back(filesystem::path(Databases[i]));
 
 	//reaction file
 	filesystem::path rxnf(reactionFile);
@@ -92,7 +89,7 @@ static void handle_create()
 	}
 	cout << rxn;
 	//open database for creation
-	DatabaseCreator dbcreator(dbpath, rxn);
+	DatabaseCreator dbcreator(dbpaths, rxn);
 
 	if(!dbcreator.isValid())
 	{
@@ -122,20 +119,20 @@ static void handle_add()
 		cerr << "Require database for add\n";
 		exit(-1);
 	}
-	else if(Databases.size() > 1)
-	{
-		cerr << "Only single database is supported for add\n";
-		exit(-1);
+
+	vector<filesystem::path> dbpaths;
+	for(unsigned i = 0, n = Databases.size(); i < n; i++) {
+		filesystem::path dbpath = Databases[i];
+		if(!filesystem::exists(dbpath))
+		{
+			cerr << dbpath << " does not exist\n";
+			exit(-1);
+		}
+		dbpaths.push_back(dbpath);
 	}
 
-	filesystem::path dbpath(Databases[0]);
-	if(!filesystem::exists(dbpath))
-	{
-		cerr << dbpath << " does not exist\n";
-		exit(-1);
-	}
 	//open database for appending
-	DatabaseCreator dbcreator(dbpath);
+	DatabaseCreator dbcreator(dbpaths);
 
 
 	if(!dbcreator.isValid())

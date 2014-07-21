@@ -14,6 +14,7 @@
 #include <boost/filesystem.hpp>
 
 #include "Reaction.h"
+#include "ScaffoldIndexer.h"
 
 using namespace boost;
 
@@ -35,15 +36,19 @@ public: //class types
 	};
 
 private:
+	vector<boost::filesystem::path> dbpaths;
 	Reaction rxn;
 	DatabaseConfiguration config;
 
+	ScaffoldIndexer scaffoldIndex;
+	bool valid;
+
 public:
 	//create a database for a specific reaction
-	DatabaseCreator(const filesystem::path& dbpath, const Reaction& react,
+	DatabaseCreator(const vector<filesystem::path>& dbpaths, const Reaction& react,
 			const DatabaseConfiguration& config = DatabaseConfiguration());
 	//open an existing database for appending
-	DatabaseCreator(const filesystem::path& dbpath);
+	DatabaseCreator(const vector<filesystem::path>& dbpaths);
 
 	~DatabaseCreator();
 
