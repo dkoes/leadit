@@ -69,25 +69,32 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 
 	MCForwardSDMolSupplier supplier(&in, false);
 	vector<MOL_SPTR_VECT> pieces;
-	vector<vector<vector<unsigned> > > rconnect;
 	vector<ROMOL_SPTR> core;
-	vector<vector<unsigned> > coreConnect;
 
 	while(!supplier.atEnd())
 	{
 		ROMOL_SPTR mol = ROMOL_SPTR(supplier.next());
-		rxn.decompose(*mol, pieces, rconnect, core, coreConnect);
+		rxn.decompose(*mol, pieces, core);
 		assert(pieces.size() == core.size());
 		//treat each match separately - highly similar confs will get weeded out anyway
 		for(unsigned i = 0, n = core.size(); i < n; i++)
 		{
-			//categorize the scaffold
-			unsigned sindex = scaffoldIndex.addScaffold(core[i], coreConnect[i]);
-			//each scaffold_reactantpos is a unique database
-			cout << sindex << "\t" << pieces[i].size() << "\n";
+			ROMOL_SPTR coremol = core[i];
+			for(ROMol::ConstConformerIterator itr = coremol->beginConformers(), end = coremol->endConformers();
+					itr != end; ++itr)
+			{
+				const CONFORMER_SPTR conf = *itr;
+				//categorize the scaffold
+				Orienter orient;
+				unsigned sindex = scaffoldIndex.addScaffold(conf, orient);
+				//each scaffold_reactantpos is a unique database
+			}
 		}
 	}
+	cout << "Index size " << scaffoldIndex.size() << "\n";
+	scaffoldIndex.dumpCounts(cout);
 }
+
 
 //generate indices and write all data to disk
 void DatabaseCreator::finalize()

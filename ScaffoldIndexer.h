@@ -17,19 +17,22 @@
 #include <vector>
 #include <boost/filesystem.hpp>
 #include <rdkit/Geometry/point.h>
+#include <eigen3/Eigen/Core>
 #include "Reaction.h"
+#include "Orienter.h"
 using namespace std;
+
 
 class ScaffoldIndexer
 {
-	double rmsdCutoff; //minimum minimized RMSD
-	double connectCutoff; //minimum unminimized RMSD to connection points
+	double rmsdCutoffSq; //minimum minimized RMSD squared
+	double connectCutoffSq; //minimum unminimized RMSD to connection points squared
 	unsigned numAtoms; //number of atoms in core scaffold
-	vector<unsigned> connectingAtoms; //indices of connectors
+	unordered_set<unsigned> connectingMapNums; //map nums of connecting atoms
 
 	struct ScaffoldInfo
 	{
-		vector<RDGeom::Point3D> center;
+		ECoords center;
 		unsigned count; //how many we've seen like this
 
 		ScaffoldInfo(): count(0) {}
@@ -40,10 +43,17 @@ class ScaffoldIndexer
 
 	vector<ScaffoldInfo> clusters;
 
+	//calculate connecting and overall RMSD, return true if cutoffs are made
+	bool calcRMSDSquares(const ECoords& a, const ECoords& b, double& connectRMSDSq, double& totalRMSDSq) const;
 
+	//put coordinates of atom into canonical form, sorted by mapping id
+	//and with connecting atoms first
+	void createCanonicalCoords(const CONFORMER_SPTR core, ECoords& coords, Orienter& orient) const;
+
+	static EMatrix3 computeRotation(const ECoords& ref, const ECoords& fit);
 public:
 
-	ScaffoldIndexer(): rmsdCutoff(0), connectCutoff(0), numAtoms(0) {}
+	ScaffoldIndexer(): rmsdCutoffSq(0), connectCutoffSq(0), numAtoms(0) {}
 	~ScaffoldIndexer() {}
 
 	//create a new, empty index
@@ -54,14 +64,19 @@ public:
 	//write out index into specified file
 	void write(ostream& out);
 
-	//finds the best scaffold cluster for the passed core scaffold
+	//finds the best scaffold cluster for the passed coordinates
 	//the cluster index is put in idx
 	//if the best match does not meet the matching criteria, return false
-	bool findBest(ROMOL_SPTR core, vector<unsigned>& idx) const;
+	bool findBest(const ECoords& coords, vector<unsigned>& idx) const;
 
 	//add a new scaffold conformation as represented by coords, will
 	//only create a new cluster if necessary, returns the cluster index
-	unsigned addScaffold(ROMOL_SPTR core, const vector<unsigned>& connect);
+	//returns the orienter needed to align molecule to chosen scaffold
+	unsigned addScaffold(const CONFORMER_SPTR core, Orienter& orient);
+
+	unsigned size() const { return clusters.size(); }
+
+	void dumpCounts(ostream& out) const;
 };
 
 #endif /* SCAFFOLDINDEXER_H_ */

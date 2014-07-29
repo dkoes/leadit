@@ -66,7 +66,6 @@ Reaction::Reaction(const filesystem::path& rxfile)
 	findCoreAndReactants();
 }
 
-#define ATOM_MAP_NUM "molAtomMapNumber"
 //identify the core of the reaction and label the noncore with what reactant they belong to
 void Reaction::findCoreAndReactants()
 {
@@ -115,6 +114,7 @@ void Reaction::findCoreAndReactants()
 	//identify the connecting heavy atoms for reactants
 	vector<vector<Atom*> > connectAtoms(reactants.size()); //indexed by reactant pos
 	vector<unsigned> connecting; //the indices of the connecting atom in the product
+	connectingMapNums.clear(); //the map numbers of connecting atoms
 
 	for (ROMol::AtomIterator aitr = product->beginAtoms(),
 			end = product->endAtoms(); aitr != end; ++aitr)
@@ -133,6 +133,10 @@ void Reaction::findCoreAndReactants()
 				{
 					//cross reactants with heavy atoms
 					connecting.push_back(idx);
+					assert(a->hasProp(ATOM_MAP_NUM));
+					int mapnum = 0;
+					a->getProp(ATOM_MAP_NUM, mapnum);
+					connectingMapNums.push_back(mapnum);
 					connectAtoms[r].push_back(product->getAtomWithIdx(u)); //core atoms
 					break;
 				}
@@ -170,13 +174,9 @@ void Reaction::findCoreAndReactants()
 	}
 
 	//set the bonds between the scaffold atoms
-	std::map<int, int> mapping;
 	vector<int> coreScaffold(coreScaffoldSet.begin(), coreScaffoldSet.end());
 	core = ROMOL_SPTR(
-			Subgraphs::pathToSubmol(*product,
-					Subgraphs::bondListFromAtomList(*product, coreScaffold),
-					false));
-
+			Subgraphs::atomsToSubmol(*product, coreScaffold));
 }
 
 //enforce a canonical ordering of atoms
@@ -240,36 +240,100 @@ static int getMolReact(ROMOL_SPTR m, unsigned idx, vector<int>& molreactants, ve
 	return old;
 }
 
+//copy all mapnums from src to dest
+static void copyMapNums(ROMol& src, ROMol& dest, map<int,int>& mapping)
+{
+    for(INT_MAP_INT::const_iterator mapIt=mapping.begin();
+          mapIt!=mapping.end();++mapIt) {
+    	const Atom* srca = src.getAtomWithIdx(mapIt->first);
+    	Atom *desta = dest.getAtomWithIdx(mapIt->second);
+
+    	if(srca->hasProp(ATOM_MAP_NUM))
+    	{
+    		int mapnum = 0;
+    		srca->getProp(ATOM_MAP_NUM, mapnum);
+    		desta->setProp(ATOM_MAP_NUM, mapnum);
+    	}
+    }
+}
+
+//copy all mapnums from src to dest
+static void copyMapNums(ROMol& src, ROMol& dest, const MatchVectType & mapping)
+{
+	for(unsigned i = 0, n = mapping.size(); i < n; i++)
+	{
+    	const Atom* srca = src.getAtomWithIdx(mapping[i].first);
+    	Atom *desta = dest.getAtomWithIdx(mapping[i].second);
+
+    	if(srca->hasProp(ATOM_MAP_NUM))
+    	{
+    		int mapnum = 0;
+    		srca->getProp(ATOM_MAP_NUM, mapnum);
+    		desta->setProp(ATOM_MAP_NUM, mapnum);
+    	}
+	}
+}
+
+
+//reduce matches to only those that differ on the core scaffold
+void Reaction::uniqueCoresOnly(vector<MatchVectType>& matches)
+{
+	vector<MatchVectType> newmatches; newmatches.reserve(matches.size());
+	vector<MatchVectType> corematches; corematches.reserve(matches.size());
+
+	for(unsigned m = 0, nm = matches.size(); m < nm; m++)
+	{
+		const MatchVectType &match = matches[m];
+
+		MatchVectType corematch; corematch.reserve(match.size());
+		for(unsigned i = 0, n = match.size(); i < n; i++)
+		{
+			unsigned prodatom = match[i].first;
+
+			if (coreScaffoldSet.count(prodatom))
+			{
+				corematch.push_back(match[i]);
+			}
+		}
+
+		if(find(corematches.begin(), corematches.end(), corematch) == corematches.end())
+		{
+			//avoid unnecessary copying with swap
+			newmatches.push_back(MatchVectType());
+			swap(newmatches.back(), matches[m]);
+			corematches.push_back(MatchVectType());
+			swap(corematches.back(),corematch);
+		}
+	}
+
+	swap(matches,newmatches);
+}
+
 //break up mol, return false on failure
 //there may be multiple possible results
-bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector< vector< vector<unsigned> > >& rconnect,
-		vector<ROMOL_SPTR>& core, vector<vector<unsigned> >& coreConnect)
+//map nums are set in results
+bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& pieces,
+		vector<ROMOL_SPTR>& core)
 {
 	ROMOL_SPTR m(MolOps::addHs(mol)); //for proper match must have hydrogens
 	core.clear();
-	coreConnect.clear();
-	if (react.size() == 0)
-		return false; //reaction failed
+	pieces.clear();
 
 	//need to extract appropraite core for each result
-	std::vector<MatchVectType> matchesHere;
-	unsigned matchCount = 0;
+	vector<MatchVectType> matchesHere;
 
-	matchCount = SubstructMatch(*m, *product, matchesHere, false, true, false);
+	//we need to match the full product pattern
+	SubstructMatch(*m, *product, matchesHere);
 
-	if (matchCount != react.size())
-	{
-		//this probably will fail eventually, but I want to see the failure example
-		//before I figure out the best way to fix it
-		cerr << "Mismatch in run reactants/substruct match\n";
-		abort();
-	}
+	uniqueCoresOnly(matchesHere);
+
 	for (unsigned i = 0, n = matchesHere.size(); i < n; i++)
 	{
 		const MatchVectType &match = matchesHere[i];
 		vector<int> molcoreAtoms;
 		vector<int> molreactants(m->getNumAtoms(), -2);
 		vector<bool> molincore(m->getNumAtoms(), false);
+		copyMapNums(*product, *m, match);
 		//each match is a pair (query, mol) where query is our product
 		for (unsigned j = 0, num = match.size(); j < num; j++)
 		{
@@ -281,7 +345,10 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 				molcoreAtoms.push_back(molatom);
 			}
 			molreactants[molatom] = productReactants[prodatom];
+
 		}
+
+
 
 		//for each reactant, need to identify the part of m that came from that
 		//reactant but that isn't part of the core scaffold
@@ -291,6 +358,7 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 		{
 			Atom *mola = *itr;
 			unsigned idx = mola->getIdx();
+
 			if(!molincore[idx])
 			{
 				int r = getMolReact(m, idx, molreactants, molincore);
@@ -298,6 +366,7 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 				assert(r < (int)reactAtoms.size());
 				reactAtoms[r].push_back(idx);
 			}
+
 		}
 
 		//each atom of mol is now labeled with what reactant it belongs to, although
@@ -317,6 +386,7 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 				int r = molreactants[b];
 				assert(r >= 0);
 				molcorebonds[r].push_back(make_pair(a,b));
+
 			}
 			else if(!molincore[a] && molincore[b])
 			{
@@ -327,18 +397,15 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 		}
 
 
-		rconnect.push_back(vector< vector<unsigned> >(reactAtoms.size()));
 		//extract reactants
 		MOL_SPTR_VECT reacts;
 		for(unsigned r = 0, nr = reactAtoms.size(); r < nr; r++)
 		{
 			std::map<int, int> mapping;
 			ROMOL_SPTR rreact = ROMOL_SPTR(
-					Subgraphs::pathToSubmol(*m,
-							Subgraphs::bondListFromAtomList(*m, reactAtoms[r]),
-							false, mapping));
+					Subgraphs::atomsToSubmol(*m, reactAtoms[r], mapping));
 
-
+			copyMapNums(*m, *rreact, mapping);
 			reacts.push_back(rreact);
 
 			//save the remaped connection points
@@ -347,21 +414,18 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 				unsigned molidx = molcorebonds[r][j].second;
 				assert(mapping.count(molidx) > 0);
 				unsigned newidx = mapping[molidx];
-				rconnect.back()[r].push_back(newidx);
 			}
 		}
+
+		pieces.push_back(reacts);
 
 		//extract core
 		std::map<int, int> mapping;
 		ROMOL_SPTR thiscore = ROMOL_SPTR(
-				Subgraphs::pathToSubmol(*m,
-						Subgraphs::bondListFromAtomList(*m, molcoreAtoms),
-						false, mapping));
-
-
+				Subgraphs::atomsToSubmol(*m, molcoreAtoms, mapping));
+		copyMapNums(*m, *thiscore, mapping);
 
 		//store indices of connecting atoms, this order should match that of the reactant order
-		vector<unsigned> corei;
 		for(unsigned r = 0, nr = molcorebonds.size(); r < nr; r++)
 		{
 			for(unsigned b = 0, nb = molcorebonds[r].size(); b < nb; b++)
@@ -369,11 +433,9 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react, vector<
 				unsigned molcoreatom = molcorebonds[r][b].first;
 				assert(mapping.count(molcoreatom));
 				unsigned connectatom = mapping[molcoreatom];
-				corei.push_back(connectatom);
 			}
 		}
 
-		coreConnect.push_back(corei);
 		core.push_back(thiscore);
 	}
 	return true;

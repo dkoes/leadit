@@ -27,6 +27,8 @@ using namespace std;
 using namespace boost;
 using namespace RDKit;
 
+#define ATOM_MAP_NUM "molAtomMapNumber"
+
 class Reaction
 {
 	typedef shared_ptr<ChemicalReaction> ChemRxnPtr;
@@ -36,8 +38,10 @@ class Reaction
 	ROMOL_SPTR core;
 	vector<int> productReactants; //what reactant each product atom belongs to
 	boost::unordered_set<unsigned> coreScaffoldSet; //set of core indices in product
+	vector<unsigned> connectingMapNums;
 
 	void findCoreAndReactants();
+	void uniqueCoresOnly(vector<MatchVectType>& matches);
 	public:
 
 	Reaction()
@@ -48,7 +52,7 @@ class Reaction
 			reverseRxn(r.reverseRxn), product(r.product), reactants(
 					r.reactants), core(r.core), productReactants(
 					r.productReactants), coreScaffoldSet(
-					r.coreScaffoldSet)
+					r.coreScaffoldSet), connectingMapNums(r.connectingMapNums)
 	{
 	}
 	~Reaction()
@@ -60,12 +64,24 @@ class Reaction
 		return core && core->getNumAtoms() > 0;
 	}
 
+	unsigned coreSize() const
+	{
+		return core->getNumHeavyAtoms();
+	}
+	unsigned connectingSize() const
+	{
+		return connectingMapNums.size();
+	}
+	const vector<unsigned>& getConnectingMapNums() const
+	{
+		return connectingMapNums;
+	}
+
 	//use the reaction to break up the passed mol into its starting reactants and core scaffold
 	//also compute the indices of the connecting atoms in each reactant and the core
 	//return false on failure
 	bool decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react,
-			vector<vector<vector<unsigned> > >& rconnect,
-			vector<ROMOL_SPTR>& core, vector<vector<unsigned> >& coreConnect);
+			vector<ROMOL_SPTR>& core);
 
 	friend ostream& operator<<(ostream &out, Reaction &r); //for debugging
 
