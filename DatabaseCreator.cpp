@@ -8,6 +8,7 @@
 #include <DatabaseCreator.h>
 #include <fstream>
 #include <rdkit/GraphMol/FileParsers/MolSupplier.h>
+#include <rdkit/GraphMol/FileParsers/MolWriters.h>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
@@ -87,6 +88,9 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 				//categorize the scaffold
 				Orienter orient;
 				unsigned sindex = scaffoldIndex.addScaffold(conf, orient);
+				//position conformer to be aligned to core scaffold
+				orient.reorient(conf->getPositions());
+
 				//each scaffold_reactantpos is a unique database
 			}
 		}

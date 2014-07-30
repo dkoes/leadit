@@ -348,8 +348,6 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& pieces,
 
 		}
 
-
-
 		//for each reactant, need to identify the part of m that came from that
 		//reactant but that isn't part of the core scaffold
 		vector< vector<int> > reactAtoms(reactants.size());

@@ -15,6 +15,7 @@
 
 #include "Reaction.h"
 #include "ScaffoldIndexer.h"
+#include "FragmentIndexer.h"
 
 using namespace boost;
 
@@ -41,6 +42,8 @@ private:
 	DatabaseConfiguration config;
 
 	ScaffoldIndexer scaffoldIndex;
+
+	vector< vector<FragmentIndexer> > fragments; //indexed first by frag position in reaction, then by scaffold index
 	bool valid;
 
 public:
