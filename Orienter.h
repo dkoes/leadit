@@ -43,7 +43,7 @@ class Orienter
 
 	void reorient(ECoords& coords) const
 	{
-		coords.rowwise() += translate;
+		coords.rowwise() += translate.transpose();
 		coords *= rotate;
 	}
 

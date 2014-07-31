@@ -30,19 +30,19 @@ class FragmentIndexer
 		RDKit::ROMOL_SPTR frag; //connection table, etc
 		vector<ECoords> coordinates; //store coordinates separately
 
-		void initialize(RDKit::CONFORMER_SPTR conf);
+		void initialize(const RDKit::Conformer& conf);
 		//add conformer if it is more than cutoff away from current set
-		void add(RDKit::CONFORMER_SPTR conf, double cutoff);
+		void add(const RDKit::Conformer& conf, double cutoffSq);
 	};
 
-	double rmsdCutoff; //avoid duplicating fragments that are more similar than this
+	double rmsdCutoffSq; //avoid duplicating fragments that are more similar than this
 
 	boost::unordered_map<string, unsigned> fragmentPos; //indexed by smiles
 	vector< Fragment > fragments; //indexed by fragmentPos, we maintain one molecule with multiple conformers
 
 public:
-	FragmentIndexer(): rmsdCutoff(0) {}
-	FragmentIndexer(double rc): rmsdCutoff(rc) {}
+	FragmentIndexer(): rmsdCutoffSq(0) {}
+	FragmentIndexer(double rc): rmsdCutoffSq(rc*rc) {}
 
 	//load in an existing index
 	void read(istream& in);
@@ -50,7 +50,7 @@ public:
 	void write(ostream& out);
 
 	//adds fragment to index if isn't within rmsdCufoff of previously added fragment
-	void add(RDKit::CONFORMER_SPTR conf);
+	void add(const RDKit::Conformer& conf);
 
 	unsigned numFragments() const { return fragments.size(); }
 	unsigned numFragmentConformers() const;

@@ -56,6 +56,20 @@ bool DatabaseCreator::isValid() const
 	return valid;
 }
 
+void DatabaseCreator::dumpCounts(ostream& out) const
+{
+	for(unsigned s = 0, ns = fragments.size(); s < ns; s++)
+	{
+		out << s << "\t";
+		for(unsigned p = 0, np = fragments[s].size(); p < np; p++)
+		{
+			const FragmentIndexer& fi = fragments[s][p];
+			out << fi.numFragments() << " (" << fi.numFragmentConformers() << ")\t";
+		}
+		out << "\n";
+	}
+}
+
 //add conformers in molfile, only adds data, does not generate indices
 void DatabaseCreator::add(const filesystem::path& molfile)
 {
@@ -81,22 +95,34 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 		for(unsigned i = 0, n = core.size(); i < n; i++)
 		{
 			ROMOL_SPTR coremol = core[i];
-			for(ROMol::ConstConformerIterator itr = coremol->beginConformers(), end = coremol->endConformers();
-					itr != end; ++itr)
+			for(unsigned c = 0, nc = coremol->getNumConformers(); c < nc; c++)
 			{
-				const CONFORMER_SPTR conf = *itr;
+				Conformer& conf = coremol->getConformer(c);
 				//categorize the scaffold
 				Orienter orient;
 				unsigned sindex = scaffoldIndex.addScaffold(conf, orient);
 				//position conformer to be aligned to core scaffold
-				orient.reorient(conf->getPositions());
+				orient.reorient(conf.getPositions());
 
+				//check for new scaffold
+				if(fragments.size() == sindex)
+					fragments.push_back(vector<FragmentIndexer>(pieces[i].size()));
+				assert(sindex < fragments.size());
 				//each scaffold_reactantpos is a unique database
+				for(unsigned p = 0, np = pieces[i].size(); p < np; p++)
+				{
+					ROMOL_SPTR frag = pieces[i][p];
+					assert(frag->getNumConformers() == nc);
+					Conformer& fragconf = frag->getConformer(c);
+					orient.reorient(fragconf.getPositions()); //align to match scaffold
+					fragments[sindex][p].add(fragconf);
+				}
 			}
 		}
 	}
 	cout << "Index size " << scaffoldIndex.size() << "\n";
 	scaffoldIndex.dumpCounts(cout);
+	dumpCounts(cout);
 }
 
 

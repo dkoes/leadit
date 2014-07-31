@@ -43,7 +43,7 @@ private:
 
 	ScaffoldIndexer scaffoldIndex;
 
-	vector< vector<FragmentIndexer> > fragments; //indexed first by frag position in reaction, then by scaffold index
+	vector< vector<FragmentIndexer> > fragments; //index first by scaffold position, then by reactant position
 	bool valid;
 
 public:
@@ -63,6 +63,8 @@ public:
 
 	//generate indices and write all data to disk
 	void finalize();
+
+	void dumpCounts(ostream& out) const;
 };
 
 #endif /* DATABASECREATOR_H_ */

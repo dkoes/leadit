@@ -164,9 +164,9 @@ static RotationMatrices rotators;
 //always sort coordinates by mapnum
 //require that all atoms of the core have a mapnum
 //heavy atoms only
-void ScaffoldIndexer::createCanonicalCoords(const CONFORMER_SPTR core, ECoords& coords, Orienter& orient) const
+void ScaffoldIndexer::createCanonicalCoords(const Conformer& core, ECoords& coords, Orienter& orient) const
 {
-	ROMol& mol = core->getOwningMol();
+	ROMol& mol = core.getOwningMol();
 
 	vector<MapNumInfo> connecting;
 	vector<MapNumInfo> remaining;
@@ -195,14 +195,14 @@ void ScaffoldIndexer::createCanonicalCoords(const CONFORMER_SPTR core, ECoords& 
 	unsigned nc = connecting.size();
 	for(unsigned i = 0; i < nc; i++)
 	{
-		RDGeom::Point3D pt = core->getAtomPos(connecting[i].idx);
+		RDGeom::Point3D pt = core.getAtomPos(connecting[i].idx);
 		coords(i,0) = pt.x;
 		coords(i,1) = pt.y;
 		coords(i,2) = pt.z;
 	}
 	for(unsigned i = 0, n = remaining.size(); i < n; i++)
 	{
-		RDGeom::Point3D pt = core->getAtomPos(remaining[i].idx);
+		RDGeom::Point3D pt = core.getAtomPos(remaining[i].idx);
 		coords(i+nc,0) = pt.x;
 		coords(i+nc,1) = pt.y;
 		coords(i+nc,2) = pt.z;
@@ -211,7 +211,7 @@ void ScaffoldIndexer::createCanonicalCoords(const CONFORMER_SPTR core, ECoords& 
 	//center coordinates
 	double nr = coords.rows();
 	Vector3d center = coords.colwise().sum()/nr;
-	coords.rowwise() -= center;
+	coords.rowwise() -= center.transpose();
 	orient.addTranslation(-center);
 
 	//align to moment of inertia
@@ -312,7 +312,7 @@ bool ScaffoldIndexer::findBest(const ECoords& coords, vector<unsigned>& idx) con
 
 //add a new scaffold conformation as represented by coords, will
 //only create a new cluster if necessary, returns the cluster index
-unsigned ScaffoldIndexer::addScaffold(const CONFORMER_SPTR core, Orienter& orient)
+unsigned ScaffoldIndexer::addScaffold(const Conformer& core, Orienter& orient)
 {
 	vector<unsigned> idx;
 	ECoords coords;
