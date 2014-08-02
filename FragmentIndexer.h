@@ -20,6 +20,7 @@
 #include <string>
 
 #include "Orienter.h"
+#include "MolMatcher.h"
 
 using namespace std;
 
@@ -27,6 +28,7 @@ class FragmentIndexer
 {
 	struct Fragment
 	{
+		MolMatcher matcher;
 		RDKit::ROMOL_SPTR frag; //connection table, etc
 		vector<ECoords> coordinates; //store coordinates separately
 

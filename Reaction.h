@@ -77,6 +77,8 @@ class Reaction
 		return connectingMapNums;
 	}
 
+	unsigned numPieces() const { return reactants.size(); }
+
 	//use the reaction to break up the passed mol into its starting reactants and core scaffold
 	//also compute the indices of the connecting atoms in each reactant and the core
 	//return false on failure

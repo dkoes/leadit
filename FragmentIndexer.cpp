@@ -9,7 +9,8 @@
 #include <GraphMol/SmilesParse/SmilesWrite.h>
 #include <GraphMol/RDKitBase.h>
 #include <boost/graph/isomorphism.hpp>
-
+#include <GraphMol/FileParsers/MolWriters.h>
+#include <MolMatcher.h>
 using namespace RDKit;
 using namespace boost;
 
@@ -21,6 +22,8 @@ void FragmentIndexer::Fragment::initialize(const RDKit::Conformer& conf)
 	ROMol& mol = conf.getOwningMol();
 
 	frag = ROMOL_SPTR(new ROMol(mol, true)); //quick copy - no conformers
+
+	matcher.initialize(frag, conf.getPositions());
 	//but need to copy properties "molAtomMapNumber"
 	for (ROMol::AtomIterator itr = mol.beginAtoms(), end = mol.endAtoms();
 			itr != end; ++itr)
@@ -77,27 +80,54 @@ void FragmentIndexer::Fragment::add(const Conformer& conf, double cutoffSq)
 {
 	//first come up with mapping between mol atoms and conf - this might be slow
 	//and an area for further optimization
-	ROMol& confmol = conf.getOwningMol();
-	const MolGraph& confgraph = confmol.getTopology();
-	const MolGraph& molgraph = frag->getTopology();
+	bool isiso = matcher.computeMatch(conf);
+	if(!isiso)
+	{
+		const ROMol& refmol = matcher.getReference();
+		const ROMol& confmol = conf.getOwningMol();
+		cout << MolToSmiles(refmol) << "\n";
+		cout << MolToSmiles(confmol) << "\n";
 
-	assert(num_vertices(confgraph) == num_vertices(molgraph));
-	vector<MolGraph::vertex_descriptor> mapping(num_vertices(confgraph), 0); //indexed by mol atomid to get conf atom id
-	VertexID molv(*frag);
-	VertexID confv(confmol);
-
-	property_map<MolGraph, vertex_index_t>::type imap = get(vertex_index,confgraph);
-	isomorphism(confgraph, molgraph,
-			isomorphism_map(make_iterator_property_map(mapping.begin(), imap, mapping[0])).
-			vertex_invariant1(confv).vertex_invariant2(molv));
+		unsigned n = refmol.getNumAtoms();
+		for(unsigned i = 0; i < n; i++)
+		{
+			const Atom *a = refmol.getAtomWithIdx(i);
+			cout << i << ":" << a->getSymbol() << "," << a->getDegree() << "," << a->getIsAromatic() << ",[";
+			ROMol::ADJ_ITER nbrIdx, endNbrs;
+			for (boost::tie(nbrIdx, endNbrs) = refmol.getAtomNeighbors(a);
+					nbrIdx != endNbrs; ++nbrIdx)
+			{
+				cout << *nbrIdx << ",";
+			}
+			cout << "]  ";
+		}
+		cout << "\n";
+		for(unsigned i = 0; i < n; i++)
+		{
+			const Atom *a = confmol.getAtomWithIdx(i);
+			cout << i << ":" << a->getSymbol() << "," << a->getDegree() << "," << a->getIsAromatic() << ",[";
+			ROMol::ADJ_ITER nbrIdx, endNbrs;
+			for (boost::tie(nbrIdx, endNbrs) = confmol.getAtomNeighbors(a);
+					nbrIdx != endNbrs; ++nbrIdx)
+			{
+				cout << *nbrIdx << ",";
+			}
+			cout << "]  ";
+		}
+		cout << "\n";
+		isiso = matcher.computeMatch(conf);
+	}
+	assert(isiso);
+	const vector<int>& matching = matcher.getMatching(); //maps from conf to refmol
 
 	//copy coordinates from conf in the same order as mol
-	ECoords confcoords(mapping.size(), 3);
-	for(unsigned i = 0, n = mapping.size(); i < n; i++)
+	ECoords confcoords(matching.size(), 3);
+	for(unsigned i = 0, n = matching.size(); i < n; i++)
 	{
-		unsigned idx = mapping[i];
-		const RDGeom::Point3D& pt = conf.getAtomPos(idx);
-		confcoords.row(i) << pt.x,pt.y,pt.z;
+		int refidx = matching[i];
+		assert(refidx >= 0);
+		const RDGeom::Point3D& pt = conf.getAtomPos(i);
+		confcoords.row(refidx) << pt.x,pt.y,pt.z;
 	}
 
 	//now see if there already exists a conformer that is within cutoff

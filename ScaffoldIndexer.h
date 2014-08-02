@@ -76,6 +76,9 @@ public:
 
 	unsigned size() const { return clusters.size(); }
 
+	//return number of molecules that have this scaffold conformation
+	unsigned getCnt(unsigned i) const { return clusters[i].count; }
+
 	void dumpCounts(ostream& out) const;
 };
 

@@ -43,6 +43,9 @@ DatabaseCreator::DatabaseCreator(const vector<filesystem::path>& dbs): dbpaths(d
 	if(!scaffin) return;
 	scaffoldIndex.read(scaffin);
 
+	unsigned sz = scaffoldIndex.size();
+	fragments.resize(sz);
+	abort(); //need to read in frags
 	valid = true;
 }
 
@@ -58,16 +61,25 @@ bool DatabaseCreator::isValid() const
 
 void DatabaseCreator::dumpCounts(ostream& out) const
 {
+	unsigned totalconfs = 0;
 	for(unsigned s = 0, ns = fragments.size(); s < ns; s++)
 	{
-		out << s << "\t";
+		unsigned possibleconfs = 1;
+		unsigned possiblemols = 1;
+		out << s << "\t" << scaffoldIndex.getCnt(s) << "\t";
 		for(unsigned p = 0, np = fragments[s].size(); p < np; p++)
 		{
 			const FragmentIndexer& fi = fragments[s][p];
 			out << fi.numFragments() << " (" << fi.numFragmentConformers() << ")\t";
+			possibleconfs *= fi.numFragmentConformers();
+			possiblemols *= fi.numFragments();
 		}
+
+		out << possiblemols << " " << possibleconfs;
+		totalconfs += possibleconfs;
 		out << "\n";
 	}
+	cout << "Total possible structures: " << totalconfs << "\n";
 }
 
 //add conformers in molfile, only adds data, does not generate indices
@@ -86,11 +98,13 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 	vector<MOL_SPTR_VECT> pieces;
 	vector<ROMOL_SPTR> core;
 
+	int cnt = 0;
 	while(!supplier.atEnd())
 	{
 		ROMOL_SPTR mol = ROMOL_SPTR(supplier.next());
 		rxn.decompose(*mol, pieces, core);
 		assert(pieces.size() == core.size());
+
 		//treat each match separately - highly similar confs will get weeded out anyway
 		for(unsigned i = 0, n = core.size(); i < n; i++)
 		{
@@ -99,6 +113,7 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 			{
 				Conformer& conf = coremol->getConformer(c);
 				//categorize the scaffold
+				cout << cnt++ << "\n";
 				Orienter orient;
 				unsigned sindex = scaffoldIndex.addScaffold(conf, orient);
 				//position conformer to be aligned to core scaffold
@@ -106,7 +121,7 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 
 				//check for new scaffold
 				if(fragments.size() == sindex)
-					fragments.push_back(vector<FragmentIndexer>(pieces[i].size()));
+					fragments.push_back(vector<FragmentIndexer>(pieces[i].size(), FragmentIndexer(config.reactantRMSDcutoff)));
 				assert(sindex < fragments.size());
 				//each scaffold_reactantpos is a unique database
 				for(unsigned p = 0, np = pieces[i].size(); p < np; p++)
@@ -115,13 +130,13 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 					assert(frag->getNumConformers() == nc);
 					Conformer& fragconf = frag->getConformer(c);
 					orient.reorient(fragconf.getPositions()); //align to match scaffold
+
 					fragments[sindex][p].add(fragconf);
 				}
 			}
 		}
 	}
 	cout << "Index size " << scaffoldIndex.size() << "\n";
-	scaffoldIndex.dumpCounts(cout);
 	dumpCounts(cout);
 }
 

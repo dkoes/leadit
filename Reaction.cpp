@@ -362,7 +362,8 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& pieces,
 				int r = getMolReact(m, idx, molreactants, molincore);
 				assert(r >= 0);
 				assert(r < (int)reactAtoms.size());
-				reactAtoms[r].push_back(idx);
+				if(mola->getAtomicNum() != 1) //ignore hydrogens
+					reactAtoms[r].push_back(idx);
 			}
 
 		}
@@ -405,14 +406,6 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& pieces,
 
 			copyMapNums(*m, *rreact, mapping);
 			reacts.push_back(rreact);
-
-			//save the remaped connection points
-			for(unsigned j = 0, nj = molcorebonds[r].size(); j < nj; j++)
-			{
-				unsigned molidx = molcorebonds[r][j].second;
-				assert(mapping.count(molidx) > 0);
-				unsigned newidx = mapping[molidx];
-			}
 		}
 
 		pieces.push_back(reacts);
@@ -430,7 +423,6 @@ bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& pieces,
 			{
 				unsigned molcoreatom = molcorebonds[r][b].first;
 				assert(mapping.count(molcoreatom));
-				unsigned connectatom = mapping[molcoreatom];
 			}
 		}
 
