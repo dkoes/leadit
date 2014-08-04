@@ -59,11 +59,13 @@ public:
 	bool isValid() const;
 
 	//add conformers in molfile, only adds data, does not generate indices
-	void add(const filesystem::path& molfile);
+	void add(const filesystem::path& molfile, bool verbose = false);
 
 	//generate indices and write all data to disk
 	void finalize();
 
+	//return total number of possible conformers across all scaffolds/fragments
+	unsigned long totalConformers() const;
 	void dumpCounts(ostream& out) const;
 };
 

@@ -60,6 +60,7 @@ cl::list<string> outputFiles("out", cl::desc("output file(s)"));
 
 cl::opt<string> reactionFile("rxn", cl::desc("reaction SMARTS file"));
 
+cl::opt<bool> Verbose("verbose", cl::desc("verbose output"));
 
 //create a database using command line arguments
 static void handle_create()
@@ -104,7 +105,7 @@ static void handle_create()
 			cerr << infile << " does not exists. Skipping.\n";
 			continue;
 		}
-		dbcreator.add(infile);
+		dbcreator.add(infile, Verbose);
 	}
 
 	//create indices

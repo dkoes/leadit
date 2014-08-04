@@ -59,9 +59,26 @@ bool DatabaseCreator::isValid() const
 	return valid;
 }
 
+unsigned long DatabaseCreator::totalConformers() const
+{
+	unsigned long totalconfs = 0;
+	for(unsigned s = 0, ns = fragments.size(); s < ns; s++)
+	{
+		unsigned long possibleconfs = 1;
+		for(unsigned p = 0, np = fragments[s].size(); p < np; p++)
+		{
+			const FragmentIndexer& fi = fragments[s][p];
+			possibleconfs *= fi.numFragmentConformers();
+		}
+
+		totalconfs += possibleconfs;
+	}
+	return totalconfs;
+}
+
 void DatabaseCreator::dumpCounts(ostream& out) const
 {
-	unsigned totalconfs = 0;
+	unsigned long totalconfs = 0;
 	for(unsigned s = 0, ns = fragments.size(); s < ns; s++)
 	{
 		unsigned possibleconfs = 1;
@@ -83,7 +100,7 @@ void DatabaseCreator::dumpCounts(ostream& out) const
 }
 
 //add conformers in molfile, only adds data, does not generate indices
-void DatabaseCreator::add(const filesystem::path& molfile)
+void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = false */)
 {
 	//handle gzipped sdf
 	ifstream inmols(molfile.c_str());
@@ -113,7 +130,6 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 			{
 				Conformer& conf = coremol->getConformer(c);
 				//categorize the scaffold
-				cout << cnt++ << "\n";
 				Orienter orient;
 				unsigned sindex = scaffoldIndex.addScaffold(conf, orient);
 				//position conformer to be aligned to core scaffold
@@ -132,6 +148,12 @@ void DatabaseCreator::add(const filesystem::path& molfile)
 					orient.reorient(fragconf.getPositions()); //align to match scaffold
 
 					fragments[sindex][p].add(fragconf);
+				}
+
+				if(verbose)
+				{
+					cnt++;
+					cout << "CNTS " << cnt << "\t" << totalConformers() << "\t" << fragments.size() << "\n";
 				}
 			}
 		}

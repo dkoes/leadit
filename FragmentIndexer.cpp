@@ -135,7 +135,9 @@ void FragmentIndexer::Fragment::add(const Conformer& conf, double cutoffSq)
 	{
 		double r = (coordinates[i]-confcoords).squaredNorm()/(double)confcoords.size();
 		if(r < cutoffSq)
+		{
 			return; //no need to add
+		}
 	}
 
 	coordinates.push_back(confcoords);

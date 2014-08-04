@@ -6,7 +6,7 @@
  */
 
 #include <MolMatcher.h>
-
+#include <rdkit/GraphMol/SmilesParse/SmilesWrite.h>
 using namespace RDKit;
 
 void MolMatcher::initialize(RDKit::ROMOL_SPTR rmol, const vector<RDGeom::Point3D>& rcoords)
@@ -25,34 +25,6 @@ void MolMatcher::initialize(RDKit::ROMOL_SPTR rmol, const vector<RDGeom::Point3D
 		atomids[i] = i;
 }
 
-struct AtomDistanceCompare
-{
-	const vector<RDGeom::Point3D>& refcoords;
-	const RDGeom::Point3D& pt;
-	vector<double> distances;
-	AtomDistanceCompare(const vector<RDGeom::Point3D>& rcoords, const RDGeom::Point3D& p) :
-			refcoords(rcoords), pt(p), distances(rcoords.size(), -1)
-	{
-
-	}
-
-	void calcDist(unsigned i)
-	{
-		RDGeom::Point3D diff = refcoords[i] - pt;
-		distances[i] = diff.lengthSq();
-	}
-
-	bool operator()(unsigned a, unsigned b)
-	{
-		if (distances[a] < 0) //calculate
-			calcDist(a);
-		if (distances[b] < 0)
-			calcDist(b);
-
-		//put the refmol ids that are closest to the provided point first
-		return distances[a] < distances[b];
-	}
-};
 
 //return true if the passed atoms match
 //recusively descends and sets matching, but only if true is returned
@@ -124,28 +96,22 @@ bool MolMatcher::isMatch(const RDKit::Conformer& testconf, const Atom *testatom,
 //return the index of the matching refmol atom, -1 if not matchable
 //has the side effect of seting matching iff a match is made
 int MolMatcher::findMatch(const RDKit::Conformer& testmol,
-		const RDKit::Atom *testatom, const vector<unsigned>& aids)
+		const RDKit::Atom *testatom, const vector<unsigned>& ids)
 {
 	unsigned idx = testatom->getIdx();
 	if (matching[idx] >= 0)
 	{
 		//have a match, but is it within aids?
 		unsigned m = matching[idx];
-		for(unsigned i = 0, n = aids.size(); i < n;i++)
+		for(unsigned i = 0, n = ids.size(); i < n;i++)
 		{
-			if(aids[i] == m)
+			if(ids[i] == m)
 				return m;
 		}
 		return -1;
 	}
 
 	//have to find match
-
-
-	//sort by distance
-	AtomDistanceCompare cmp(refcoords, testmol.getAtomPos(testatom->getIdx()));
-	vector<unsigned> ids = aids;
-	sort(ids.begin(), ids.end(), cmp);
 
 	for (unsigned i = 0, n = ids.size(); i < n; i++)
 	{
@@ -206,7 +172,9 @@ bool MolMatcher::computeMatch(const RDKit::Conformer& test)
 	if(identical)
 		return true; //don't have to do full graph matching
 
-	abort(); //this is here because I want to see the non-identical case; if it never triggers may remove matching code
+	/* 99.9% of the time, we won't get here, but occastionally the rdkit
+	 * numers don't match up so we have to do a full match
+	 */
 
 	matching.assign(matching.size(), -1);
 	refmatching.assign(refmatching.size(), -1);
