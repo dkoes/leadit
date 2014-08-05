@@ -59,7 +59,13 @@ struct Vertex
 
 //this can be 15 or 31; 31 is needs for storing large, detailed objects,
 //15 is sufficient for molecular shape matching
-#define MINDEX_BITS 15
+#define GSS_MINDEX_BITS (15)
+
+//we can store a bitmask of properties that are merged within the gss tree
+#ifndef GSS_PROPERTY_BITS
+#define GSS_PROPERTY_BITS (7)
+#endif
+
 struct MOctNode;
 struct MChildNode
 {
@@ -68,23 +74,27 @@ struct MChildNode
 		//you would think there would be a more portably way to get this bit-packed alignment,
 		//but I couldn't figure one out - isLeafs should overlap
 		bool isLeaf :1;
+		unsigned properties : GSS_PROPERTY_BITS; //annotations - generally not copied
 		struct
 		{
 			bool isLeaf :1;
+			unsigned properties : GSS_PROPERTY_BITS;
 			unsigned pattern :8;
-			unsigned numbits :4;
+			unsigned numbits :4; //number of bits that are set in pattern
 		}__attribute__((__packed__)) leaf;
 
 		struct
 		{
 			bool isLeaf :1;
-			unsigned index :MINDEX_BITS;
+			unsigned properties : GSS_PROPERTY_BITS;
+			unsigned index :GSS_MINDEX_BITS;
 		}__attribute__((__packed__)) node;
 	}__attribute__((__packed__));
 
 	MChildNode() :
 			isLeaf(true)
 	{
+		node.properties = 0;
 		node.index = 0;
 	}
 
@@ -92,6 +102,7 @@ struct MChildNode
 	MChildNode(unsigned i) :
 			isLeaf(false)
 	{
+		node.properties = 0;
 		node.index = i;
 	}
 
@@ -99,6 +110,7 @@ struct MChildNode
 	MChildNode(unsigned pat, unsigned i) :
 			isLeaf(true)
 	{
+		leaf.properties = 0;
 		leaf.pattern = pat;
 		leaf.numbits = i;
 	}
@@ -242,6 +254,8 @@ public:
 
 	bool equals(const MappableOctTree* rhs) const;
 
+
+
 	//create a grid representing this octtree
 	void makeGrid(MGrid& grid, float res) const;
 
@@ -253,6 +267,8 @@ public:
 			"#FFFFFFFF") const;
 	void countLeavesAtDepths(vector<unsigned>& counts) const;
 private:
+
+	//recursively create based on object overlap
 	template<class Object>
 	static MChildNode create_r(float res, const Cube& cube, const Object& obj,
 			vector<MOctNode>& tree)
@@ -269,6 +285,9 @@ private:
 			{
 				ret.leaf.pattern = 0xff;
 				ret.leaf.numbits = 8;
+#if GSS_PROPERTY_BITS > 0
+				ret.leaf.properties = obj.getProperties(x,y,z);
+#endif
 			}
 			else
 			{
@@ -299,7 +318,7 @@ private:
 			unsigned pos = tree.size();
 			ret.node.index = tree.size();
 
-			if (tree.size() >= (1U << MINDEX_BITS))
+			if (tree.size() >= (1U << GSS_MINDEX_BITS))
 			{
 				cerr
 						<< "Too many nodes for MINDEX_BITS. Must recompile to support larger octtress.\n";
@@ -358,6 +377,8 @@ public:
 	{
 		return create(grid.getDimension(), grid.getResolution(),grid);
 	}
+
+
 }__attribute__((__packed__));
 
 
