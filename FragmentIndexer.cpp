@@ -174,3 +174,13 @@ unsigned FragmentIndexer::numFragmentConformers() const
 	return total;
 }
 
+bool FragmentIndexer::read(const vector<boost::filesystem::path>& indirs)
+{
+	return false; //TODO - implement
+}
+
+//stripe out index into specified directories - this will overwrite everything with the current data
+void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
+{
+
+}

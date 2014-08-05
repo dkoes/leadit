@@ -179,36 +179,6 @@ void Reaction::findCoreAndReactants()
 			Subgraphs::atomsToSubmol(*product, coreScaffold));
 }
 
-//enforce a canonical ordering of atoms
-static bool canonicalAtomCompare(const Atom* l, const Atom *r)
-{
-	bool lprop = l->hasProp(ATOM_MAP_NUM);
-	bool rprop = r->hasProp(ATOM_MAP_NUM);
-	if(lprop && rprop)
-	{
-		int lnum = 0, rnum = 0;
-		l->getProp(ATOM_MAP_NUM, lnum);
-		r->getProp(ATOM_MAP_NUM, rnum);
-
-		return lnum < rnum;
-	}
-	else if(lprop)
-	{
-		return true;
-	}
-	else if(rprop)
-	{
-		return false; //mapping go first
-	}
-	else
-	{
-		if(l->getAtomicNum() != r->getAtomicNum())
-			return l->getAtomicNum() < r->getAtomicNum();
-		return l->getIdx() < r->getIdx(); //hopefully this is sufficient
-	}
-
-}
-
 //figure out which reaction atom idx belongs to
 //this isn't very efficient - does a depth first traversal
 //but it does update molreactants to avoid some recomputation
@@ -312,10 +282,10 @@ void Reaction::uniqueCoresOnly(vector<MatchVectType>& matches)
 //break up mol, return false on failure
 //there may be multiple possible results
 //map nums are set in results
-bool Reaction::decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& pieces,
+//assumes mol has hydrogens added
+bool Reaction::decompose(ROMOL_SPTR m, vector<MOL_SPTR_VECT>& pieces,
 		vector<ROMOL_SPTR>& core)
 {
-	ROMOL_SPTR m(MolOps::addHs(mol)); //for proper match must have hydrogens
 	core.clear();
 	pieces.clear();
 

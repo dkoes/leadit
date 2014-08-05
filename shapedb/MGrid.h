@@ -63,6 +63,12 @@ public:
 		return test(x,y,z);
 	}
 
+	//no properties
+	unsigned getProperties(float x, float y, float z) const
+	{
+		return 0;
+	}
+
 	//return true if possibly intersects cube - by always returning true
 	//explores every grid point with contains point resulting in some
 	//unnecessary oct-tree creation

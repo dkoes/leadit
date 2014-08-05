@@ -82,7 +82,7 @@ class Reaction
 	//use the reaction to break up the passed mol into its starting reactants and core scaffold
 	//also compute the indices of the connecting atoms in each reactant and the core
 	//return false on failure
-	bool decompose(const ROMol& mol, vector<MOL_SPTR_VECT>& react,
+	bool decompose(ROMOL_SPTR m, vector<MOL_SPTR_VECT>& react,
 			vector<ROMOL_SPTR>& core);
 
 	friend ostream& operator<<(ostream &out, Reaction &r); //for debugging

@@ -62,8 +62,18 @@ struct Vertex
 #define GSS_MINDEX_BITS (15)
 
 //we can store a bitmask of properties that are merged within the gss tree
+//unfortunately, not everyone is going to want properties, and zero length named
+//bitfields aren't allowed, so we have to wrap all references with #defines
 #ifndef GSS_PROPERTY_BITS
 #define GSS_PROPERTY_BITS (7)
+#endif
+
+//define macro for accessing property field
+#if GSS_PROPERTY_BITS > 0
+#define GSS_PROPERTIES(NODE) ((NODE).properties)
+#else /* ignore node, access (hopefully) easily optimized dummy */
+static unsigned gss_properties_dummy = 0;
+#define GSS_PROPERTIES(NODE) (gss_properties_dummy)
 #endif
 
 struct MOctNode;
@@ -74,11 +84,15 @@ struct MChildNode
 		//you would think there would be a more portably way to get this bit-packed alignment,
 		//but I couldn't figure one out - isLeafs should overlap
 		bool isLeaf :1;
+#if GSS_PROPERTY_BITS > 0
 		unsigned properties : GSS_PROPERTY_BITS; //annotations - generally not copied
+#endif
 		struct
 		{
 			bool isLeaf :1;
+#if GSS_PROPERTY_BITS > 0
 			unsigned properties : GSS_PROPERTY_BITS;
+#endif
 			unsigned pattern :8;
 			unsigned numbits :4; //number of bits that are set in pattern
 		}__attribute__((__packed__)) leaf;
@@ -86,7 +100,9 @@ struct MChildNode
 		struct
 		{
 			bool isLeaf :1;
+#if GSS_PROPERTY_BITS > 0
 			unsigned properties : GSS_PROPERTY_BITS;
+#endif
 			unsigned index :GSS_MINDEX_BITS;
 		}__attribute__((__packed__)) node;
 	}__attribute__((__packed__));
@@ -285,9 +301,7 @@ private:
 			{
 				ret.leaf.pattern = 0xff;
 				ret.leaf.numbits = 8;
-#if GSS_PROPERTY_BITS > 0
-				ret.leaf.properties = obj.getProperties(x,y,z);
-#endif
+				GSS_PROPERTIES(ret.leaf) = obj.getProperties(x,y,z);
 			}
 			else
 			{
@@ -343,6 +357,7 @@ private:
 					}
 				}
 				tree[pos].vol += child.volume(tree, newc.volume());
+				GSS_PROPERTIES(ret) |= GSS_PROPERTIES(child); //properties propagate by union
 			}
 			//are all the children full or empty? then can represent as a pattern
 			if (filledcnt == 8)
