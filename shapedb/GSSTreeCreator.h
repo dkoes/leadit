@@ -88,7 +88,7 @@ protected:
 	virtual void createNextLevelR(TopDownPartitioner *P);
 public:
 	GSSLevelCreator(const TopDownPartitioner * part, const Packer *pack,
-			unsigned np, unsigned lp) :
+			unsigned np = 32768, unsigned lp = 32768) :
 			partitioner(part), packer(pack), nodePack(np), leafPack(lp)
 	{
 	}
@@ -151,13 +151,15 @@ public:
 		}
 	}
 
-	bool create(boost::filesystem::path dir, boost::filesystem::path treedir, float dim,
-			float res);
+	bool create(boost::filesystem::path dir, boost::filesystem::path treedir, float dim = 64,
+			float res = 0.5);
 
 	//return true if successful
+	//create a gss tree, if noobjs is true, only store index of
+	//object in input stream
 	template <class Object, class ObjectIterator>
 	bool create(boost::filesystem::path dir, ObjectIterator& itr,
-			float dim, float res)
+			float dim = 64, float res = 0.5, bool noobjs = false)
 	{
 		using namespace boost;
 		dimension = dim;
@@ -181,16 +183,25 @@ public:
 
 		Timer t;
 		//write out objects and trees
-		objects.set(objfile.string().c_str());
+		if(!noobjs)
+			objects.set(objfile.string().c_str());
 		currenttrees.set(curtreesfile.c_str());
 		vector<file_index> treeindices;
 		vector<file_index> objindices;
-		unsigned cnt = 0;
+		file_index cnt = 0;
 		for (; itr; ++itr)
 		{
 			const Object& obj = *itr;
-			objindices.push_back((file_index) objects.file->tellp());
-			obj.write(*objects.file);
+
+			if(noobjs)
+			{
+				objindices.push_back(cnt);
+			}
+			else
+			{
+				objindices.push_back((file_index) objects.file->tellp());
+				obj.write(*objects.file);
+			}
 
 			//leaf object
 			treeindices.push_back((file_index) currenttrees.file->tellp());

@@ -20,6 +20,7 @@
 #include <vector>
 #include <string>
 #include "shapedb/GSSTreeCreator.h"
+#include "shapedb/molecules/RDMoleculeAnalytic.h"
 #include "Orienter.h"
 #include "MolMatcher.h"
 
@@ -43,24 +44,70 @@ class FragmentIndexer
 	//this is what is located in the lookup table
 	struct DataIndex
 	{
-		unsigned long rdloc;
-		unsigned long coordloc;
+		unsigned long molloc;
 		unsigned long sminaloc;
+		//pharma data?
+
 	};
 
 	//for writing out molecular data in an easy to access format
-	struct OutputDir
+	//this class is responsible for outputting one slice of the data
+	//functions as an iterator for gss tree creation
+	class Outputter
 	{
-		//the gss tree of the shapes
+		vector<Fragment> *fragments; //reference to fragments
+		unsigned position; //position in fragments array
+		unsigned confposition; //position within fragment conformers
+		unsigned stride;
+		boost::filesystem::path dir;
+		RDMolecule current;
+		bool valid;
 
+		vector<DataIndex> indices;
+		ofstream *sminaData;
+		ofstream *molData;
 
-		//the rdkit molecular data
+		void readNext();
+		void setCurrent();
+	public:
+		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), sminaData(NULL), molData(NULL) {}
 
-		//the coordinate data
+		Outputter(vector<Fragment> *frags, const boost::filesystem::path& d, unsigned start, unsigned strd);
 
-		//smina format
+		~Outputter()
+		{
+			if(sminaData) delete sminaData;
+			if(molData) delete molData;
+		}
+
+		operator bool() const
+		{
+			return valid;
+		}
+
+		//current mol
+		const RDMolecule& operator*() const
+		{
+			return current;
+		}
+
+		//default dimension for gss tree
+		float getDimension() const { return 64; }
+		//default resolution
+		float getResolution() const { return 0.5; }
+
+		void operator++()
+		{
+			readNext();
+		}
+
+		const boost::filesystem::path& getDir() const { return dir; }
+
+		void finish();
 
 	};
+
+
 	double rmsdCutoffSq; //avoid duplicating fragments that are more similar than this
 
 	boost::unordered_map<string, unsigned> fragmentPos; //indexed by smiles

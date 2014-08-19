@@ -110,3 +110,16 @@ void assignPharmacophoreAtomProperties(RDKit::ROMOL_SPTR mol)
 		}
 	}
 }
+
+//return bitmask of pharmacophore annotated on atom
+unsigned atomPharmacophoreProps(RDKit::Atom *atom)
+{
+	unsigned ret = 0;
+	for(unsigned i = 0, n = pharmacophoreFeatures.size(); i < n; i++)
+	{
+		const PharmacophoreFeature& ph = pharmacophoreFeatures[i];
+		if(atom->hasProp(ph.propName))
+			ret |= (1<<i);
+	}
+	return ret;
+}

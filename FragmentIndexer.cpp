@@ -11,6 +11,13 @@
 #include <boost/graph/isomorphism.hpp>
 #include <GraphMol/FileParsers/MolWriters.h>
 #include <MolMatcher.h>
+#include "shapedb/GSSTreeCreator.h"
+#include "shapedb/packers/MatcherPacker.h"
+#include "shapedb/KSamplePartitioner.h"
+#include "shapedb/molecules/PMol.h"
+#include "Orienter.h"
+#include "pharmacophores.h"
+
 using namespace RDKit;
 using namespace boost;
 
@@ -179,8 +186,133 @@ bool FragmentIndexer::read(const vector<boost::filesystem::path>& indirs)
 	return false; //TODO - implement
 }
 
+
+
 //stripe out index into specified directories - this will overwrite everything with the current data
 void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
 {
+	//create slices -- eventually multithread
+	vector<Outputter> writers; writers.reserve(outdirs.size());
+	for(unsigned i = 0, n = outdirs.size(); i < n; i++)
+	{
+		writers.push_back(Outputter(&fragments, outdirs[i], i, outdirs.size()));
+	}
 
+	//TODO: thread
+	//these two are stateless
+	MatcherPacker packer;
+	KSamplePartitioner topdown;
+
+	for(unsigned i = 0, n = writers.size(); i < n; i++)
+	{
+		GSSLevelCreator leveler(&topdown, &packer);
+		GSSTreeCreator creator(&leveler);
+		filesystem::path d = writers[i].getDir();
+
+		if (!creator.create<RDMolecule, Outputter>(d / "gss", writers[i], writers[i].getDimension(), writers[i].getResolution(), true))
+		{
+			cerr << "Error creating gss database " << writers[i].getDir() << "\n";
+			exit(-1);
+		}
+
+		//output indices
+		writers[i].finish();
+	}
+}
+
+
+FragmentIndexer::Outputter::Outputter(vector<Fragment> *frags, const boost::filesystem::path& d, unsigned start, unsigned strd):
+	fragments(frags), position(start), confposition(0), stride(strd), dir(d), sminaData(NULL), molData(NULL)
+{
+	if(position < fragments->size() && confposition < (*fragments)[position].coordinates.size())
+	{
+		valid = true;
+		filesystem::path sd = d / "sminaData";
+		sminaData = new ofstream(sd.string().c_str());
+		filesystem::path md = d / "molData";
+		molData = new ofstream(md.string().c_str());
+
+		setCurrent();
+	}
+	else
+	{
+		valid = false;
+	}
+}
+
+//setup the next current fragment, outputting data as we go
+void FragmentIndexer::Outputter::Outputter::readNext()
+{
+	confposition++; //next conformation
+	if(confposition >= (*fragments)[position].coordinates.size())
+	{
+		//reset to next fragment
+		confposition = 0;
+		position += stride;
+	}
+	if(position < fragments->size())
+	{
+		//still valid
+		setCurrent();
+	}
+	else
+	{
+		valid = false;
+	}
+}
+
+
+void FragmentIndexer::Outputter::Outputter::setCurrent()
+{
+	//create a new romol with a single conformer
+	const Fragment& frag = (*fragments)[position];
+	ROMol *mol = new ROMol(*frag.frag);
+
+	Conformer *conf = new Conformer(mol->getNumAtoms());
+	//set atom positions
+	ECoords coords = frag.coordinates[confposition];
+	//also extract any pharmacphoric properties
+	vector< pair<RDGeom::Point3D, unsigned> > props;
+	for(unsigned i = 0, n = coords.rows(); i < n; i++)
+	{
+		RDGeom::Point3D pt;
+		pt.x = coords(i,0);
+		pt.y = coords(i,1);
+		pt.z = coords(i,2);
+
+		conf->setAtomPos(i, pt);
+
+		Atom *atm = mol->getAtomWithIdx(i);
+		unsigned pharmas = atomPharmacophoreProps(atm);
+		if(pharmas != 0)
+			props.push_back(make_pair(pt, pharmas));
+	}
+	mol->addConformer(conf); //takes ownershipt of conf
+
+	current.set(mol); //takes ownershp of mol
+	current.setProperties(props);
+
+	//write out molecular data and save positions
+	DataIndex idx;
+
+	idx.sminaloc = sminaData->tellp();
+	//TODO: generate and write sminaData
+
+	idx.molloc = molData->tellp();
+	PMolCreator pmol(*mol, true);
+	pmol.writeBinary(*molData);
+
+	indices.push_back(idx);
+}
+
+void FragmentIndexer::Outputter::Outputter::finish()
+{
+	//output indices
+	filesystem::path indfile = dir / "indices";
+	ofstream out(indfile.string().c_str());
+
+	for(unsigned i = 0, n = indices.size(); i < n; i++)
+	{
+		out.write((char*)&indices[i],sizeof(indices[i]));
+	}
 }

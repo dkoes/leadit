@@ -159,7 +159,9 @@ void PMolCreator::copyFrom(ROMol& mol, bool deleteH)
 	static OBIsotopeTable isotable;
 	const Conformer& conf = mol.getConformer();
 
-	mol.getProp("_Name",name);
+	name.clear();
+	if(mol.hasProp("_Name"))
+		mol.getProp("_Name",name);
 	//first construct atoms
 	int typeindex[256]; //position in atoms vector of an atom type, indexed by atomic number
 	int tmpatomindex[mol.getNumAtoms()]; //position within the atom type vector

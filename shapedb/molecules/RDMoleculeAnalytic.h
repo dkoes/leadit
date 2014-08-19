@@ -19,11 +19,12 @@
 #include "MolSphere.h"
 #include "Cube.h"
 #include "MGrid.h"
-#include "PMol.h"
+#include "molecules/PMol.h"
 #include "AnalyticCheckers.h"
 
 #include <GraphMol/ROMol.h>
 #include <GraphMol/PeriodicTable.h>
+#include <GraphMol/AtomIterators.h>
 #include <GraphMol/FileParsers/MolSupplier.h>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
@@ -32,6 +33,7 @@ using namespace std;
 
 class RDMolIterator;
 class RDMolOutput;
+
 
 
 //interface between molecular shape and the gss tree
@@ -45,73 +47,61 @@ class RDMolecule
 	mutable vector<SphereChecker> checkers;
 
 	ROMol *mol;
+	float dimension;
+	float resolution;
 	float adjustAmount;
 	float probe;
-
-	ROMol* getMol() //RDMol will deallocate returned memory on next set
-	{
-		return mol;
-	}
-
-	//takes ownership of mol ptr
-	void set(ROMol* m, float dimension, float resolution, float prb = 1.4,
-			float adj = 0)
-	{
-		const PeriodicTable *tbl = PeriodicTable::getTable();
-		if(mol != NULL) delete mol;
-		mol = m;
-		const Conformer& conf = mol->getConformer();
-		adjustAmount = adj;
-		probe = prb;
-		vector<MolSphere> spheres;
-		spheres.reserve(mol->getNumAtoms());
-		float mind = -dimension/2;
-		float maxd = dimension/2;
-		for (ROMol::AtomIterator aitr = mol->beginAtoms(); aitr != mol->endAtoms();
-				++aitr)
-		{
-			Atom* atom = *aitr;
-			float r = tbl->getRvdw(atom->getAtomicNum())
-											- adjustAmount;
-			RDGeom::Point3D pt = conf.getAtomPos(atom->getIdx());
-			float x = pt.x;
-			float y = pt.y;
-			float z = pt.z;
-			//omit sphere's outside of grid range; this may introduce
-			//some very small artifacts at the edge of the grid
-			if(x > mind-r && x < maxd+r &&
-					y > mind - r && y < maxd+r &&
-					z > mind - r && z < maxd+r)
-			{
-				spheres.push_back(MolSphere(x,y,z,r));
-			}
-		}
-
-		checkers.clear();
-		checkers.reserve(spheres.size());
-		for (unsigned i = 0, n = spheres.size(); i < n; i++)
-		{
-			checkers.push_back(SphereChecker(spheres[i]));
-			checkers.back().addNeighbors(spheres, i + 1, probe);
-		}
-
-		reverse(checkers.begin(), checkers.end());
-	}
-
-	friend class RDMolOutput; //needs to call getMol
-	friend class RDMolIterator; //calls set
+	vector< boost::array<int, 4> > props; //properties associated with locations, location is first 3
 
 public:
 	typedef RDMolIterator iterator;
 
-	RDMolecule() :
-			adjustAmount(0), probe(0), mol(NULL)
+	RDMolecule() : mol(NULL), dimension(64), resolution(0.5),
+			adjustAmount(0), probe(0)
 	{
 	}
+
+	RDMolecule(float d, float r, float p) : mol(NULL), dimension(d), resolution(r),
+			adjustAmount(0), probe(p)
+	{
+	}
+
 	~RDMolecule()
 	{
 		if(mol) delete mol;
 		mol = NULL;
+	}
+
+	//providebitmask of properties associated
+	//with points
+	void setProperties(const vector< pair<RDGeom::Point3D, unsigned> >& p)
+	{
+		props.clear();
+		props.reserve(p.size());
+		for(unsigned i = 0, n = p.size(); i < n; i++)
+		{
+			const RDGeom::Point3D& pt = p[i].first;
+			boost::array<int,4> val = { int(pt.x/resolution), int(pt.y/resolution), int(pt.z/resolution), (int)p[i].second };
+			props.push_back(val);
+		}
+	}
+
+	//return bitmask of properties relevant to this location
+	unsigned getProperties(float x, float y, float z) const
+	{
+		//TODO, make faster
+		unsigned ret = 0;
+		int X = floor(x/resolution);
+		int Y = floor(y/resolution);
+		int Z = floor(z/resolution);
+		for(unsigned i = 0, n = props.size(); i < n; i++)
+		{
+			if(props[i][0] == X && props[i][1] == Y && props[i][2] == Z)
+			{
+				ret |= props[i][3];
+			}
+		}
+		return ret;
 	}
 
 	bool intersects(const Cube& cube) const
@@ -152,6 +142,54 @@ public:
 		pmol.writeBinary(out);
 	}
 
+	ROMol* getMol() //RDMol will deallocate returned memory on next set
+	{
+		return mol;
+	}
+
+	//takes ownership of mol ptr; only iterator objects should use this
+	void set(ROMol* m,	float adj = 0)
+	{
+		const PeriodicTable *tbl = PeriodicTable::getTable();
+		if(mol != NULL) delete mol;
+		mol = m;
+		const Conformer& conf = mol->getConformer();
+		adjustAmount = adj;
+		vector<MolSphere> spheres;
+		spheres.reserve(mol->getNumAtoms());
+		float mind = -dimension/2;
+		float maxd = dimension/2;
+		for (ROMol::AtomIterator aitr = mol->beginAtoms(); aitr != mol->endAtoms();
+				++aitr)
+		{
+			Atom* atom = *aitr;
+			float r = tbl->getRvdw(atom->getAtomicNum())
+											- adjustAmount;
+			RDGeom::Point3D pt = conf.getAtomPos(atom->getIdx());
+			float x = pt.x;
+			float y = pt.y;
+			float z = pt.z;
+			//omit sphere's outside of grid range; this may introduce
+			//some very small artifacts at the edge of the grid
+			if(x > mind-r && x < maxd+r &&
+					y > mind - r && y < maxd+r &&
+					z > mind - r && z < maxd+r)
+			{
+				spheres.push_back(MolSphere(x,y,z,r));
+			}
+		}
+
+		checkers.clear();
+		checkers.reserve(spheres.size());
+		for (unsigned i = 0, n = spheres.size(); i < n; i++)
+		{
+			checkers.push_back(SphereChecker(spheres[i]));
+			checkers.back().addNeighbors(spheres, i + 1, probe);
+		}
+
+		reverse(checkers.begin(), checkers.end());
+	}
+
 };
 
 // use rdkit to read in from a file
@@ -164,9 +202,6 @@ class RDMolIterator
 	RDMolecule currmolecule;
 	bool valid;
 	bool keepHydrogens;
-	float dimension;
-	float resolution;
-	float probe;
 
 	void readOne()
 	{
@@ -177,14 +212,12 @@ class RDMolIterator
 			if(!mol)
 				valid = false;
 			else
-				currmolecule.set(mol, dimension, resolution, probe);
+				currmolecule.set(mol);
 		}
 	}
 public:
-	RDMolIterator(const string& fname, float dim, float res, bool keepH,
-			float prb) : sdsup(NULL),
-			valid(true), keepHydrogens(keepH), dimension(dim), resolution(res), probe(
-					prb)
+	RDMolIterator(const string& fname, float dimension, float resolution, bool keepH,
+			float probe) : sdsup(NULL), currmolecule(dimension, resolution,  probe), valid(true), keepHydrogens(keepH)
 	{
 		if (fname.size() == 0)
 		{
@@ -213,7 +246,7 @@ public:
 			return;
 		}
 		ROMol *mol = sdsup->next();
-		currmolecule.set(mol, dimension, resolution, probe);
+		currmolecule.set(mol, probe);
 	}
 
 	~RDMolIterator()
