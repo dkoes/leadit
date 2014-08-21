@@ -69,12 +69,12 @@ bool GSSTreeCreator::createIndex(vector<file_index>& objindices, vector<file_ind
 	currenttrees.remove();
 	nexttrees.remove();
 
-	cout << "Create/write index\t" << t.elapsed() << "\n";
+	//cout << "Create/write index\t" << t.elapsed() << "\n";
 	t.restart();
 
 	optimizeLevels();
 
-	cout << "Optimized levels\t" << t.elapsed() << "\n";
+	//cout << "Optimized levels\t" << t.elapsed() << "\n";
 	//output general info
 	filesystem::path infoname = dbpath / "info";
 	ofstream info(infoname.string().c_str());

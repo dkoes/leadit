@@ -111,6 +111,7 @@ void FragmentIndexer::Fragment::add(const Conformer& conf, double cutoffSq)
 			cout << "]  ";
 		}
 		cout << "\n";
+
 		for(unsigned i = 0; i < n; i++)
 		{
 			const Atom *a = confmol.getAtomWithIdx(i);
@@ -205,8 +206,8 @@ bool FragmentIndexer::read(const vector<boost::filesystem::path>& indirs)
 
 	for(unsigned i = 0, n = indirs.size(); i < n; i++)
 	{
-		ifstream data(indirs[i].string().c_str());
-
+		filesystem::path fpath = indirs[i] / "fragData";
+		ifstream data(fpath.string().c_str());
 		unsigned j = 0;
 		while(data)
 		{
@@ -216,6 +217,18 @@ bool FragmentIndexer::read(const vector<boost::filesystem::path>& indirs)
 			if(pos < fragments.size())
 			{
 				fragments[pos].read(data);
+				string smi =  MolToSmiles(*fragments[pos].frag);
+				if(fragmentPos.count(smi) == 0)
+				{
+					cerr << "Not there\n";
+					abort();
+				}
+				else if(fragmentPos[smi] != pos)
+				{
+					cerr << pos << " " << fragmentPos[smi] << " "<<smi << "\n";
+					abort();
+				}
+				j++;
 			}
 			else
 				break;
@@ -259,12 +272,22 @@ void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
 
 		if (!creator.create<RDMolecule, Outputter>(d / "gss", *writers[i], writers[i]->getDimension(), writers[i]->getResolution(), true))
 		{
-			cerr << "Error creating gss database " << writers[i]->getDir() << "\n";
+			cerr << "Error creating gss database " << d << "\n";
 			exit(-1);
 		}
 
 		//output indices
 		writers[i]->finish();
+
+		//write out fragment data, also striped
+		//pos = i*n+j
+		filesystem::path fragpath = d / "fragData";
+		ofstream fragData(fragpath.string().c_str());
+		for(unsigned j = i, nfrags = fragments.size(); j < nfrags; j+= n)
+		{
+			fragments[j].write(fragData);
+		}
+
 	}
 }
 
@@ -279,8 +302,6 @@ FragmentIndexer::Outputter::Outputter(vector<Fragment> *frags, const boost::file
 		sminaData = new ofstream(sd.string().c_str());
 		filesystem::path md = d / "molData";
 		molData = new ofstream(md.string().c_str());
-		filesystem::path fd = d / "fragData";
-		fragData = new ofstream(fd.string().c_str());
 		setCurrent();
 	}
 	else
@@ -341,8 +362,6 @@ void FragmentIndexer::Outputter::Outputter::setCurrent()
 	current.set(mol); //takes ownershp of mol
 	current.setProperties(props);
 
-	//write out index data
-	frag.write(*fragData);
 	//write out molecular data and save positions
 	DataIndex idx;
 
@@ -385,9 +404,11 @@ void FragmentIndexer::Fragment::read(istream& in)
 	streamRead(in, n);
 
 	coordinates.resize(n);
-	unsigned m = frag->getNumAtoms() *3;
+	unsigned numatoms = frag->getNumAtoms();
+	unsigned m = numatoms*3;
 	for(unsigned i = 0, n = coordinates.size(); i < n; i++)
 	{
+		coordinates[i].resize(numatoms, 3);
 		for(unsigned j = 0; j < m; j++)
 		{
 			float val = 0;

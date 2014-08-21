@@ -67,8 +67,6 @@ class FragmentIndexer
 		RDMolecule current;
 		bool valid;
 
-		ofstream *fragData;
-
 		vector<DataIndex> indices;
 		ofstream *sminaData;
 		ofstream *molData;
@@ -78,7 +76,7 @@ class FragmentIndexer
 
 		Outputter(const Outputter& rhs); //disable copy constructor since bad things will happen
 	public:
-		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), fragData(NULL), sminaData(NULL), molData(NULL) {}
+		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), sminaData(NULL), molData(NULL) {}
 
 		Outputter(vector<Fragment> *frags, const boost::filesystem::path& d, unsigned start, unsigned strd);
 
@@ -86,8 +84,7 @@ class FragmentIndexer
 		{
 			if(sminaData) delete sminaData;
 			if(molData) delete molData;
-			if(fragData) delete fragData;
-			sminaData = molData = fragData = NULL;
+			sminaData = molData = NULL;
 		}
 
 		operator bool() const

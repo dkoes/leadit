@@ -415,6 +415,7 @@ ostream& operator<<(ostream &out, Reaction &r)
 void Reaction::write(ostream& out)
 {
 	ReactionPickler::pickleReaction(*reverseRxn, out);
+
 	MolPickler::pickleMol(*product,out);
 	unsigned n = reactants.size();
 	streamWrite(out, n);
@@ -445,6 +446,7 @@ void Reaction::read(istream& in)
 {
 	reverseRxn = make_shared<ChemicalReaction>();
 	ReactionPickler::reactionFromPickle(in, *reverseRxn);
+
 	product = ROMOL_SPTR(new ROMol());
 	MolPickler::molFromPickle(in, *product);
 

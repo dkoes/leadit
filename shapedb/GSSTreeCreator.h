@@ -211,7 +211,7 @@ public:
 			cnt++;
 		}
 
-		cout << "Create/write trees\t" << t.elapsed() << "\n";
+		//cout << "Create/write trees\t" << t.elapsed() << "\n";
 		t.restart();
 
 		return createIndex(objindices, treeindices, currenttrees);
@@ -273,7 +273,7 @@ public:
 			cnt++;
 		}
 		currenttrees.clear();
-		cout << "Create/write trees\t" << t.elapsed() << "\n";
+		//cout << "Create/write trees\t" << t.elapsed() << "\n";
 		return true;
 	}
 

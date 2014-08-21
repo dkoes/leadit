@@ -206,6 +206,9 @@ void MolMatcher::read(istream& in)
 	streamRead(in, n);
 
 	refcoords.resize(n);
+	atomids.resize(n);
+	matching.resize(n);
+	refmatching.resize(n);
 	for(unsigned i = 0; i < n; i++)
 	{
 		RDGeom::Point3D& pt = refcoords[i];
