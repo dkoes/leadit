@@ -207,7 +207,7 @@ public:
 			treeindices.push_back((file_index) currenttrees.file->tellp());
 			MappableOctTree *tree = MappableOctTree::create(dim, res, obj);
 			tree->write(*currenttrees.file);
-			delete tree;
+			free(tree);
 			cnt++;
 		}
 
@@ -269,7 +269,7 @@ public:
 			treeindices.write((char*)&treeindex, sizeof(file_index));
 			MappableOctTree *tree = MappableOctTree::create(dim, res, obj);
 			tree->write(*currenttrees.file);
-			delete tree;
+			free(tree);
 			cnt++;
 		}
 		currenttrees.clear();

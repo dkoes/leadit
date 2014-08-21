@@ -37,6 +37,9 @@ class FragmentIndexer
 		void initialize(const RDKit::Conformer& conf);
 		//add conformer if it is more than cutoff away from current set
 		void add(const RDKit::Conformer& conf, double cutoffSq);
+
+		void read(istream& in);
+		void write(ostream& out) const;
 	};
 
 	//in order to more extendable, search indices point to an
@@ -48,6 +51,7 @@ class FragmentIndexer
 		unsigned long sminaloc;
 		//pharma data?
 
+		void write(ostream& out) const;
 	};
 
 	//for writing out molecular data in an easy to access format
@@ -63,14 +67,18 @@ class FragmentIndexer
 		RDMolecule current;
 		bool valid;
 
+		ofstream *fragData;
+
 		vector<DataIndex> indices;
 		ofstream *sminaData;
 		ofstream *molData;
 
 		void readNext();
 		void setCurrent();
+
+		Outputter(const Outputter& rhs); //disable copy constructor since bad things will happen
 	public:
-		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), sminaData(NULL), molData(NULL) {}
+		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), fragData(NULL), sminaData(NULL), molData(NULL) {}
 
 		Outputter(vector<Fragment> *frags, const boost::filesystem::path& d, unsigned start, unsigned strd);
 
@@ -78,6 +86,8 @@ class FragmentIndexer
 		{
 			if(sminaData) delete sminaData;
 			if(molData) delete molData;
+			if(fragData) delete fragData;
+			sminaData = molData = fragData = NULL;
 		}
 
 		operator bool() const
@@ -110,7 +120,8 @@ class FragmentIndexer
 
 	double rmsdCutoffSq; //avoid duplicating fragments that are more similar than this
 
-	boost::unordered_map<string, unsigned> fragmentPos; //indexed by smiles
+	typedef boost::unordered_map<string, unsigned> FragmentMap;
+	FragmentMap fragmentPos; //indexed by smiles
 	vector< Fragment > fragments; //indexed by fragmentPos, we maintain one molecule with multiple conformers
 
 public:

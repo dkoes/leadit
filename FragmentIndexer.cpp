@@ -11,6 +11,8 @@
 #include <boost/graph/isomorphism.hpp>
 #include <GraphMol/FileParsers/MolWriters.h>
 #include <MolMatcher.h>
+#include <RDGeneral/StreamOps.h>
+#include <GraphMol/MolPickler.h>
 #include "shapedb/GSSTreeCreator.h"
 #include "shapedb/packers/MatcherPacker.h"
 #include "shapedb/KSamplePartitioner.h"
@@ -183,7 +185,43 @@ unsigned FragmentIndexer::numFragmentConformers() const
 
 bool FragmentIndexer::read(const vector<boost::filesystem::path>& indirs)
 {
-	return false; //TODO - implement
+	//first input index data
+	filesystem::path fragIndex = indirs[0] / "fragIndex";
+	ifstream indexin(fragIndex.string().c_str());
+
+	indexin >> rmsdCutoffSq;
+
+	string smile;
+	unsigned pos = 0;
+	fragmentPos.clear();
+	while(indexin)
+	{
+		indexin >> smile;
+		indexin >> pos;
+		fragmentPos[smile] = pos;
+	}
+
+	fragments.resize(fragmentPos.size());
+
+	for(unsigned i = 0, n = indirs.size(); i < n; i++)
+	{
+		ifstream data(indirs[i].string().c_str());
+
+		unsigned j = 0;
+		while(data)
+		{
+			//the j'th fragment in data should be put at position
+			//j*n+i
+			unsigned pos = j*n+i;
+			if(pos < fragments.size())
+			{
+				fragments[pos].read(data);
+			}
+			else
+				break;
+		}
+	}
+	return true;
 }
 
 
@@ -191,11 +229,21 @@ bool FragmentIndexer::read(const vector<boost::filesystem::path>& indirs)
 //stripe out index into specified directories - this will overwrite everything with the current data
 void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
 {
+
 	//create slices -- eventually multithread
-	vector<Outputter> writers; writers.reserve(outdirs.size());
+	vector<shared_ptr<Outputter> > writers; writers.reserve(outdirs.size());
 	for(unsigned i = 0, n = outdirs.size(); i < n; i++)
 	{
-		writers.push_back(Outputter(&fragments, outdirs[i], i, outdirs.size()));
+		writers.push_back(make_shared<Outputter>(&fragments, outdirs[i], i, outdirs.size()));
+		//output redundant index info as text
+		filesystem::path fragIndex = outdirs[i] / "fragIndex";
+		ofstream fragout(fragIndex.string().c_str());
+		fragout << rmsdCutoffSq << "\n";
+
+		BOOST_FOREACH(FragmentMap::value_type &kv, fragmentPos)
+		{
+			fragout << kv.first << "\t" << kv.second << "\n";
+		}
 	}
 
 	//TODO: thread
@@ -207,16 +255,16 @@ void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
 	{
 		GSSLevelCreator leveler(&topdown, &packer);
 		GSSTreeCreator creator(&leveler);
-		filesystem::path d = writers[i].getDir();
+		filesystem::path d = writers[i]->getDir();
 
-		if (!creator.create<RDMolecule, Outputter>(d / "gss", writers[i], writers[i].getDimension(), writers[i].getResolution(), true))
+		if (!creator.create<RDMolecule, Outputter>(d / "gss", *writers[i], writers[i]->getDimension(), writers[i]->getResolution(), true))
 		{
-			cerr << "Error creating gss database " << writers[i].getDir() << "\n";
+			cerr << "Error creating gss database " << writers[i]->getDir() << "\n";
 			exit(-1);
 		}
 
 		//output indices
-		writers[i].finish();
+		writers[i]->finish();
 	}
 }
 
@@ -231,7 +279,8 @@ FragmentIndexer::Outputter::Outputter(vector<Fragment> *frags, const boost::file
 		sminaData = new ofstream(sd.string().c_str());
 		filesystem::path md = d / "molData";
 		molData = new ofstream(md.string().c_str());
-
+		filesystem::path fd = d / "fragData";
+		fragData = new ofstream(fd.string().c_str());
 		setCurrent();
 	}
 	else
@@ -292,6 +341,8 @@ void FragmentIndexer::Outputter::Outputter::setCurrent()
 	current.set(mol); //takes ownershp of mol
 	current.setProperties(props);
 
+	//write out index data
+	frag.write(*fragData);
 	//write out molecular data and save positions
 	DataIndex idx;
 
@@ -313,6 +364,52 @@ void FragmentIndexer::Outputter::Outputter::finish()
 
 	for(unsigned i = 0, n = indices.size(); i < n; i++)
 	{
-		out.write((char*)&indices[i],sizeof(indices[i]));
+		indices[i].write(out);
+	}
+}
+
+void FragmentIndexer::DataIndex::write(ostream& out) const
+{
+	streamWrite(out, molloc);
+	streamWrite(out, sminaloc);
+}
+
+void FragmentIndexer::Fragment::read(istream& in)
+{
+	matcher.read(in);
+	frag = ROMOL_SPTR(new ROMol());
+
+	MolPickler::molFromPickle(in, *frag);
+
+	unsigned n = 0;
+	streamRead(in, n);
+
+	coordinates.resize(n);
+	unsigned m = frag->getNumAtoms() *3;
+	for(unsigned i = 0, n = coordinates.size(); i < n; i++)
+	{
+		for(unsigned j = 0; j < m; j++)
+		{
+			float val = 0;
+			streamRead(in, val);
+			coordinates[i](j) = val;
+		}
+	}
+
+}
+
+void FragmentIndexer::Fragment::write(ostream& out) const
+{
+	matcher.write(out);
+	MolPickler::pickleMol(*frag,out);
+	unsigned n = coordinates.size();
+	streamWrite(out, n);
+	for(unsigned i = 0, n = coordinates.size(); i < n; i++)
+	{
+		for(unsigned j = 0, m = coordinates[i].size(); j < m; j++)
+		{
+			float val = coordinates[i](j);
+			streamWrite(out,val);
+		}
 	}
 }

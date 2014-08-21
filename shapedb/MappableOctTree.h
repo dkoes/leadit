@@ -110,7 +110,7 @@ struct MChildNode
 	MChildNode() :
 			isLeaf(true)
 	{
-		node.properties = 0;
+		GSS_PROPERTIES(node) = 0;
 		node.index = 0;
 	}
 
@@ -118,7 +118,7 @@ struct MChildNode
 	MChildNode(unsigned i) :
 			isLeaf(false)
 	{
-		node.properties = 0;
+		GSS_PROPERTIES(node) = 0;
 		node.index = i;
 	}
 
@@ -126,7 +126,8 @@ struct MChildNode
 	MChildNode(unsigned pat, unsigned i) :
 			isLeaf(true)
 	{
-		leaf.properties = 0;
+		GSS_PROPERTIES(leaf) = 0;
+		node.index = 0; //fully initialize
 		leaf.pattern = pat;
 		leaf.numbits = i;
 	}

@@ -60,6 +60,11 @@ cl::list<string> outputFiles("out", cl::desc("output file(s)"));
 
 cl::opt<string> reactionFile("rxn", cl::desc("reaction SMARTS file"));
 
+cl::opt<bool> Force("force", cl::desc("Overwrite any existing database"), cl::init(false));
+cl::opt<double> ScaffoldRMSD("scaffold-rmsd",cl::desc("Maximum RMSD for scaffolds to be merged"), cl::init(0.5));
+cl::opt<double> ConnectCutoff("connect-cutoff",cl::desc("Maximum distance allowed between connection points"), cl::init(0.1));
+cl::opt<double> ReactantRMSD("reactant-rmsd",cl::desc("Maximum RMSD for reactants to be merged"), cl::init(0.5));
+
 cl::opt<bool> Verbose("verbose", cl::desc("verbose output"));
 
 //create a database using command line arguments
@@ -89,8 +94,15 @@ static void handle_create()
 		exit(-1);
 	}
 	cout << rxn;
+	//parameters
+	DatabaseCreator::DatabaseConfiguration config;
+	config.force = Force;
+	config.reactantRMSDcutoff = ReactantRMSD;
+	config.connectPointCutoff = ConnectCutoff;
+	config.scaffoldRMSDcutoff = ScaffoldRMSD;
+
 	//open database for creation
-	DatabaseCreator dbcreator(dbpaths, rxn);
+	DatabaseCreator dbcreator(dbpaths, rxn, config);
 
 	if(!dbcreator.isValid())
 	{

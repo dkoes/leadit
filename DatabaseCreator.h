@@ -28,10 +28,11 @@ public: //class types
 		double scaffoldRMSDcutoff; //maximum rmsd for scaffolds to be identical
 		double connectPointCutoff; //maximum allowed deviation of connecting points
 		double reactantRMSDcutoff; //maximum rmsd for reactant conformation to be considered novel
+		bool force; // if true, delete present directory
 		//sensible defaults
 		DatabaseConfiguration() :
 				scaffoldRMSDcutoff(0.5), connectPointCutoff(0.1),
-						reactantRMSDcutoff(0.5)
+						reactantRMSDcutoff(0.5), force(false)
 		{
 		}
 	};

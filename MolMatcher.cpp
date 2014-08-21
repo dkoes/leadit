@@ -6,7 +6,11 @@
  */
 
 #include <MolMatcher.h>
-#include <rdkit/GraphMol/SmilesParse/SmilesWrite.h>
+#include <GraphMol/SmilesParse/SmilesWrite.h>
+#include <RDGeneral/StreamOps.h>
+#include <GraphMol/MolPickler.h>
+
+
 using namespace RDKit;
 
 void MolMatcher::initialize(RDKit::ROMOL_SPTR rmol, const vector<RDGeom::Point3D>& rcoords)
@@ -191,4 +195,49 @@ bool MolMatcher::computeMatch(const RDKit::Conformer& test)
 
 
 	return true;
+}
+
+void MolMatcher::read(istream& in)
+{
+	refmol = ROMOL_SPTR(new ROMol());
+	MolPickler::molFromPickle(in, *refmol);
+
+	unsigned n = 0;
+	streamRead(in, n);
+
+	refcoords.resize(n);
+	for(unsigned i = 0; i < n; i++)
+	{
+		RDGeom::Point3D& pt = refcoords[i];
+		streamRead(in, pt.x);
+		streamRead(in, pt.y);
+		streamRead(in, pt.z);
+		streamRead(in, atomids[i]);
+		streamRead(in, matching[i]);
+		streamRead(in, refmatching[i]);
+	}
+}
+
+void MolMatcher::write(ostream& out) const
+{
+	MolPickler::pickleMol(*refmol,out);
+
+	unsigned n = refcoords.size();
+	streamWrite(out, n);
+	assert(n == atomids.size());
+	assert(n == matching.size());
+	assert(n == refmatching.size());
+
+	//output data for each atom
+	for(unsigned i = 0; i < n; i++)
+	{
+		const RDGeom::Point3D& pt = refcoords[i];
+		streamWrite(out, pt.x);
+		streamWrite(out, pt.y);
+		streamWrite(out, pt.z);
+		streamWrite(out, atomids[i]);
+		streamWrite(out, matching[i]);
+		streamWrite(out, refmatching[i]);
+	}
+
 }

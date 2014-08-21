@@ -53,5 +53,8 @@ public:
 	const vector<int>& getMatching() const { return matching; }
 
 	const RDKit::ROMol& getReference() const { return *refmol; }
+
+	void read(istream& in);
+	void write(ostream& out) const;
 };
 #endif /* MOLMATCHER_H_ */

@@ -24,6 +24,11 @@ DatabaseCreator::DatabaseCreator(const vector<filesystem::path>& dbs,
 	//make the directories
 	for (unsigned i = 0, n = dbpaths.size(); i < n; i++)
 	{
+		if(filesystem::exists(dbpaths[i]) && config.force)
+		{
+			//try to remove any existing directories
+			filesystem::remove_all(dbpaths[i]);
+		}
 		if (!filesystem::create_directory(dbpaths[i]))
 			return;
 	}

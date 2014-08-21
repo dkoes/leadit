@@ -15,6 +15,7 @@
 #include <GraphMol/Substruct/SubstructMatch.h>
 #include <GraphMol/ChemReactions/ReactionPickler.h>
 #include <GraphMol/MolPickler.h>
+#include <RDGeneral/StreamOps.h>
 
 Reaction::Reaction(const filesystem::path& rxfile)
 {
@@ -416,7 +417,7 @@ void Reaction::write(ostream& out)
 	ReactionPickler::pickleReaction(*reverseRxn, out);
 	MolPickler::pickleMol(*product,out);
 	unsigned n = reactants.size();
-	out.write((char*)&n, sizeof(unsigned));
+	streamWrite(out, n);
 	for(unsigned i = 0; i < n; i++)
 	{
 		MolPickler::pickleMol(*reactants[i],out);
@@ -424,18 +425,18 @@ void Reaction::write(ostream& out)
 	MolPickler::pickleMol(*core, out);
 
 	n = productReactants.size();
-	out.write((char*)&n, sizeof(unsigned));
+	streamWrite(out, n);
 	for(unsigned i = 0; i < n; i++)
 	{
-		out.write((char*)&productReactants[i],sizeof(int));
+		streamWrite(out,productReactants[i]);
 	}
 	n = coreScaffoldSet.size();
-	out.write((char*)&n, sizeof(unsigned));
+	streamWrite(out, n);
 	for(unordered_set<unsigned>::iterator itr = coreScaffoldSet.begin(),
 			end = coreScaffoldSet.end(); itr != end; ++itr)
 	{
 		unsigned val = *itr;
-		out.write((char*)&val,sizeof(unsigned));
+		streamWrite(out,val);
 	}
 }
 
@@ -448,7 +449,7 @@ void Reaction::read(istream& in)
 	MolPickler::molFromPickle(in, *product);
 
 	unsigned n = 0;
-	in.read((char*)&n, sizeof(unsigned));
+	streamRead(in, n);
 	reactants.resize(n);
 
 	for(unsigned i = 0; i < n; i++)
@@ -460,18 +461,18 @@ void Reaction::read(istream& in)
 	core = ROMOL_SPTR(new ROMol());
 	MolPickler::molFromPickle(in, *core);
 
-	in.read((char*)&n, sizeof(unsigned));
+	streamRead(in, n);
 	productReactants.resize(n);
 	for(unsigned i = 0; i < n; i++)
 	{
-		in.read((char*)&productReactants[i],sizeof(int));
+		streamRead(in, productReactants[i]);
 	}
 
-	in.read((char*)&n, sizeof(unsigned));
+	streamRead(in, n);
 	for(unsigned i = 0; i < n; i++)
 	{
 		unsigned val = 0;
-		in.read((char*)&val, sizeof(unsigned));
+		streamRead(in, val);
 		coreScaffoldSet.insert(val);
 	}
 	assert(coreScaffoldSet.size() == n);
