@@ -402,7 +402,7 @@ bool Reaction::decompose(ROMOL_SPTR m, vector<MOL_SPTR_VECT>& pieces,
 	return true;
 }
 
-ostream& operator<<(ostream &out, Reaction &r)
+ostream& operator<<(ostream &out, const Reaction &r)
 {
 	out << "Reaction: " << ChemicalReactionToRxnSmarts(*r.reverseRxn)
 			<< "\n";

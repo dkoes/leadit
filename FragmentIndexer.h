@@ -23,6 +23,7 @@
 #include "shapedb/molecules/RDMoleculeAnalytic.h"
 #include "Orienter.h"
 #include "MolMatcher.h"
+#include "DataIndex.h"
 
 using namespace std;
 
@@ -42,17 +43,6 @@ class FragmentIndexer
 		void write(ostream& out) const;
 	};
 
-	//in order to more extendable, search indices point to an
-	//index in a lookup table that provides the index for other data types
-	//this is what is located in the lookup table
-	struct DataIndex
-	{
-		unsigned long molloc;
-		unsigned long sminaloc;
-		//pharma data?
-
-		void write(ostream& out) const;
-	};
 
 	//for writing out molecular data in an easy to access format
 	//this class is responsible for outputting one slice of the data

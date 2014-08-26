@@ -389,11 +389,6 @@ void FragmentIndexer::Outputter::Outputter::finish()
 	}
 }
 
-void FragmentIndexer::DataIndex::write(ostream& out) const
-{
-	streamWrite(out, molloc);
-	streamWrite(out, sminaloc);
-}
 
 void FragmentIndexer::Fragment::read(istream& in)
 {

@@ -33,12 +33,15 @@ bool GSSTreeSearcher::load(const filesystem::path& dbpath)
 	leaves.map(leavespath.string(), true, true);
 
 	filesystem::path objfile = dbpath / "objs";
-	if (!objects.map(objfile.string(), true, false))
-	{
-		clear();
-		return false;
-	}
 
+	if (filesystem::exists(objfile))
+	{
+		if (!objects.map(objfile.string(), true, false))
+		{
+			clear();
+			return false;
+		}
+	}
 	return true;
 }
 

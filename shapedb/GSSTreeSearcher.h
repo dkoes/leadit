@@ -11,7 +11,6 @@
 #define GSSTREESEARCHER_H_
 
 #include "GSSTreeStructures.h"
-#include "molecules/Molecule.h"
 #include "MemMapped.h"
 #include "MappableOctTree.h"
 #include "molecules/ResultMolecules.h"

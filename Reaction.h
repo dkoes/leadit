@@ -85,7 +85,7 @@ class Reaction
 	bool decompose(ROMOL_SPTR m, vector<MOL_SPTR_VECT>& react,
 			vector<ROMOL_SPTR>& core);
 
-	friend ostream& operator<<(ostream &out, Reaction &r); //for debugging
+	friend ostream& operator<<(ostream &out, const Reaction &r); //for debugging
 
 	void write(ostream& out); //for serialization
 	void read(istream& in);

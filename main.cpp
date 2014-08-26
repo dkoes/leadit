@@ -34,6 +34,7 @@
 
 #include "Reaction.h"
 #include "DatabaseCreator.h"
+#include "DatabaseSearcher.h"
 
 using namespace std;
 
@@ -169,6 +170,39 @@ static void handle_add()
 	dbcreator.finalize();
 }
 
+static void handle_dbinfo()
+{
+	if(Databases.size() == 0)
+	{
+		cerr << "Require database for dbinfo\n";
+		exit(-1);
+	}
+
+	vector<filesystem::path> dbpaths;
+	for(unsigned i = 0, n = Databases.size(); i < n; i++) {
+		filesystem::path dbpath = Databases[i];
+		if(!filesystem::exists(dbpath))
+		{
+			cerr << dbpath << " does not exist\n";
+			exit(-1);
+		}
+		dbpaths.push_back(dbpath);
+	}
+
+	//open database for appending
+	DatabaseSearcher dbsearcher(dbpaths);
+
+
+	if(!dbsearcher.isValid())
+	{
+		cerr << "Error opening database\n";
+		exit(-1);
+	}
+
+	cout << dbsearcher.getReaction() << "\n";
+	cout << dbsearcher.totalConformers() << " total conformers available\n";
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -182,8 +216,10 @@ int main(int argc, char *argv[])
 		case AddMolecules:
 			handle_add();
 			break;
+		case DatabaseInfo:
+			handle_dbinfo();
+			break;
 		case SearchDatabase: //f
-		case DatabaseInfo: //f
 		case Server: //f
 		default:
 			cerr << "Command not yet implemented\n";
