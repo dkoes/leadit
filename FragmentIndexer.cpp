@@ -305,6 +305,8 @@ FragmentIndexer::Outputter::Outputter(vector<Fragment> *frags, const boost::file
 		sminaData = new ofstream(sd.string().c_str());
 		filesystem::path md = d / "molData";
 		molData = new ofstream(md.string().c_str());
+		filesystem::path pd = d / "pharmaData";
+		pharmaData = new ofstream(pd.string().c_str());
 		setCurrent();
 	}
 	else
@@ -370,6 +372,9 @@ void FragmentIndexer::Outputter::Outputter::setCurrent()
 
 	idx.sminaloc = sminaData->tellp();
 	//TODO: generate and write sminaData
+
+	idx.pharmaloc = pharmaData->tellp();
+	writePharmacophoreProps(props, *pharmaData);
 
 	idx.molloc = molData->tellp();
 	PMolCreator pmol(*mol, true);

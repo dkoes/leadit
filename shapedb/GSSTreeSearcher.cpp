@@ -63,7 +63,8 @@ GSSTreeSearcher::~GSSTreeSearcher()
 //if invertBig is set, than treat as an excluded volume
 //if refobjtree is provided, than compute volume overlap with refobjtree as score
 void GSSTreeSearcher::dc_search(ObjectTree smallobjTree,
-		ObjectTree bigobjTree, ObjectTree refobjTree, bool loadObjs, Results& res)
+		ObjectTree bigobjTree, ObjectTree refobjTree, bool loadObjs, Results& res,
+		TreeFilter filter)
 {
 	const MappableOctTree* smallTree = smallobjTree.get();
 	const MappableOctTree* bigTree = bigobjTree.get();
@@ -80,13 +81,13 @@ void GSSTreeSearcher::dc_search(ObjectTree smallobjTree,
 	if (internalNodes.size() > 0)
 	{
 		const GSSInternalNode* root = (GSSInternalNode*) internalNodes.begin();
-		findTweeners(root, smallTree, bigTree, origTree, respos, 0, loadObjs);
+		findTweeners(root, smallTree, bigTree, origTree, respos, 0, loadObjs, filter);
 	}
 	else
 	{
 		//very small tree with just a leaf
 		const GSSLeaf* leaf = (GSSLeaf*) leaves.begin();
-		findTweeners(leaf, smallTree, bigTree, origTree, respos, loadObjs);
+		findTweeners(leaf, smallTree, bigTree, origTree, respos, loadObjs, filter);
 	}
 
 	Timer objload;
@@ -498,7 +499,7 @@ bool GSSTreeSearcher::fitsInbetween(const MappableOctTree *MIV,
 
 //find everyting between small and big using linear scan
 void GSSTreeSearcher::dc_scan_search(ObjectTree smallobjTree,
-		ObjectTree bigobjTree, ObjectTree origobjTree, bool loadObjs, Results& res)
+		ObjectTree bigobjTree, ObjectTree origobjTree, bool loadObjs, Results& res, TreeFilter filter)
 {
 	const MappableOctTree* smallTree = smallobjTree.get();
 	const MappableOctTree* bigTree = bigobjTree.get();
@@ -512,7 +513,7 @@ void GSSTreeSearcher::dc_scan_search(ObjectTree smallobjTree,
 	vector<result_info> respos;
 	for (; leaf != end; leaf = (const GSSLeaf*) ((char*) leaf + leaf->bytes()))
 	{
-		findTweeners(leaf, smallTree, bigTree, origTree, respos, loadObjs);
+		findTweeners(leaf, smallTree, bigTree, origTree, respos, loadObjs, filter);
 	}
 
 	Timer objload;
@@ -539,7 +540,7 @@ void GSSTreeSearcher::dc_scan_search(ObjectTree smallobjTree,
 
 void GSSTreeSearcher::findTweeners(const GSSInternalNode* node,
 		const MappableOctTree* min, const MappableOctTree* max, const MappableOctTree* orig,
-		vector<result_info>& respos, unsigned level, bool computeDist)
+		vector<result_info>& respos, unsigned level, bool computeDist, TreeFilter filter)
 {
 	nodesVisited++;
 	if (levelCnts.size() <= level)
@@ -571,14 +572,14 @@ void GSSTreeSearcher::findTweeners(const GSSInternalNode* node,
 		{
 			const GSSLeaf* next = (const GSSLeaf*) (leaves.begin()
 					+ child->position());
-			findTweeners(next, min, max, orig, respos, computeDist);
+			findTweeners(next, min, max, orig, respos, computeDist, filter);
 		}
 		else
 		{
 			const GSSInternalNode* next =
 					(const GSSInternalNode*) (internalNodes.begin()
 							+ child->position());
-			findTweeners(next, min, max, orig, respos, level + 1, computeDist);
+			findTweeners(next, min, max, orig, respos, level + 1, computeDist, filter);
 		}
 	}
 	if (respos.size() > oldres)
@@ -590,7 +591,7 @@ void GSSTreeSearcher::findTweeners(const GSSInternalNode* node,
 //if computeDist is true, compute a goodness of fit for reach result
 void GSSTreeSearcher::findTweeners(const GSSLeaf* node,
 		const MappableOctTree* min, const MappableOctTree* max, const MappableOctTree* orig,
-		vector<result_info>& respos, bool computeDist)
+		vector<result_info>& respos, bool computeDist, TreeFilter filter)
 {
 	leavesVisited++;
 	unsigned cnt = 0;

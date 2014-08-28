@@ -17,8 +17,15 @@
 
 using namespace std;
 
+static bool nofilter(const MappableOctTree* tree) { return true; } //default filter, everything okay
+
 class GSSTreeSearcher
 {
+public:
+	typedef boost::shared_ptr<const MappableOctTree> ObjectTree;
+	typedef bool (TreeFilter)(const MappableOctTree *tree);
+
+private:
 	MemMapped objects; //memory mapped objects
 	MemMapped internalNodes;
 	MemMapped leaves;
@@ -31,11 +38,11 @@ class GSSTreeSearcher
 	void findTweeners(const GSSInternalNode* node, const MappableOctTree* min,
 			const MappableOctTree* max, const MappableOctTree* orig,
 			vector<result_info>& res,
-			unsigned level, bool computeDist);
+			unsigned level, bool computeDist, TreeFilter filter);
 	void findTweeners(const GSSLeaf* node, const MappableOctTree* min,
 			const MappableOctTree* max, const MappableOctTree* orig,
 			vector<result_info>& res,
-			bool computeDist);
+			bool computeDist, TreeFilter filter);
 
 	struct ObjDist
 	{
@@ -108,10 +115,10 @@ class GSSTreeSearcher
 			const MappableOctTree *min, const MappableOctTree *max);
 
 public:
-	typedef boost::shared_ptr<const MappableOctTree> ObjectTree;
 
 	GSSTreeSearcher(bool v = false) :
-			verbose(v), total(0)
+			verbose(v), total(0), dimension(0), resolution(0), fitsCheck(0),
+			nodesVisited(0), leavesVisited(0), fullLeaves(0)
 	{
 	}
 
@@ -127,12 +134,12 @@ public:
 	//return everything with a shape between smallTree and bigTree
 	void dc_search(ObjectTree smallTree, ObjectTree bigTree, ObjectTree refTree,
 			bool loadObjs,
-			Results& res);
+			Results& res, TreeFilter filter = nofilter);
 
 	//linear scan
 	void dc_scan_search(ObjectTree smallTree, ObjectTree bigTree,
 			ObjectTree refTree, bool loadObjs,
-			Results& res);
+			Results& res, TreeFilter filter = nofilter);
 
 	//return k objects closest to obj and better than threshold
 	void nn_search(ObjectTree objTree, unsigned k, double thresh, bool loadObjs,

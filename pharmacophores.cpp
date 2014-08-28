@@ -11,6 +11,7 @@
 #include <boost/assign.hpp>
 #include <rdkit/GraphMol/SmilesParse/SmilesParse.h>
 #include <rdkit/GraphMol/Substruct/SubstructMatch.h>
+#include <rdkit/RDGeneral/StreamOps.h>
 
 using namespace RDKit;
 using namespace boost;
@@ -72,6 +73,8 @@ const std::vector<PharmacophoreFeature> pharmacophoreFeatures = assign::list_of
 		(PharmacophoreFeature("PharmaTypeNegativeIon", negative_ion))
 		(PharmacophoreFeature("PharmaTypeHydrophobic", hydrophobic));
 
+#define NUMPHARMAS (6)
+
 //initialize smarts
 PharmacophoreFeature::PharmacophoreFeature(const string& n, const char **sm) :
 		propName(n)
@@ -88,20 +91,20 @@ PharmacophoreFeature::PharmacophoreFeature(const string& n, const char **sm) :
 
 void assignPharmacophoreAtomProperties(RDKit::ROMOL_SPTR mol)
 {
-	for(unsigned i = 0, n = pharmacophoreFeatures.size(); i < n; i++)
+	for (unsigned i = 0, n = pharmacophoreFeatures.size(); i < n; i++)
 	{
 		const PharmacophoreFeature& ph = pharmacophoreFeatures[i];
-		for(unsigned s = 0, ns = ph.smarts.size(); s < ns; s++)
+		for (unsigned s = 0, ns = ph.smarts.size(); s < ns; s++)
 		{
 			MatchVectType match;
-			if(SubstructMatch(*mol, *ph.smarts[s], match))
+			if (SubstructMatch(*mol, *ph.smarts[s], match))
 			{
 				//match some pharmacophore, label all the participating atoms
-				for(unsigned a = 0, na = match.size(); a < na; a++)
+				for (unsigned a = 0, na = match.size(); a < na; a++)
 				{
 					unsigned idx = match[a].second; //mol index
 					Atom *atom = mol->getAtomWithIdx(idx);
-					if(!atom->hasProp(ph.propName))
+					if (!atom->hasProp(ph.propName))
 					{
 						atom->setProp(ph.propName, i);
 					}
@@ -115,11 +118,65 @@ void assignPharmacophoreAtomProperties(RDKit::ROMOL_SPTR mol)
 unsigned atomPharmacophoreProps(RDKit::Atom *atom)
 {
 	unsigned ret = 0;
-	for(unsigned i = 0, n = pharmacophoreFeatures.size(); i < n; i++)
+	for (unsigned i = 0, n = pharmacophoreFeatures.size(); i < n; i++)
 	{
 		const PharmacophoreFeature& ph = pharmacophoreFeatures[i];
-		if(atom->hasProp(ph.propName))
-			ret |= (1<<i);
+		if (atom->hasProp(ph.propName))
+			ret |= (1 << i);
 	}
 	return ret;
+}
+
+struct PharmaIndex
+{
+	struct Point
+	{
+		float x, y, z;
+		Point() :
+				x(0), y(0), z(0)
+		{
+		}
+
+		Point(float X, float Y, float Z): x(X), y(Y), z(Z) {}
+	};
+	unsigned char start[NUMPHARMAS + 1];
+	Point points[];
+};
+
+void writePharmacophoreProps(
+		const vector<pair<RDGeom::Point3D, unsigned> >& props, ostream& out)
+{
+	//sort by pharma type
+	vector< vector<PharmaIndex::Point> > pharmas;
+	pharmas.resize(NUMPHARMAS);
+
+	for(unsigned i = 0, n = props.size(); i < n; i++)
+	{
+		const RDGeom::Point3D& pt = props[i].first;
+		unsigned mask = props[i].second;
+		unsigned phpos = ffs(mask)-1; //least sig position is 1
+		assert(phpos < NUMPHARMAS);
+		pharmas[phpos].push_back(PharmaIndex::Point(pt.x, pt.y, pt.z));
+	}
+
+	//output the starting point of each pharma type
+	unsigned pos = 0;
+	for(unsigned i = 0, n = pharmas.size(); i < n; i++)
+	{
+		streamWrite(out, pos);
+		pos += pharmas.size();
+	}
+	streamWrite(out, pos);
+	//now output points
+	for(unsigned i = 0, n = pharmas.size(); i < n; i++)
+	{
+		for(unsigned j = 0, m = pharmas[i].size(); j < m; j++)
+		{
+			const PharmaIndex::Point& pt = pharmas[i][j];
+			streamWrite(out, pt.x);
+			streamWrite(out, pt.y);
+			streamWrite(out, pt.z);
+		}
+	}
+
 }

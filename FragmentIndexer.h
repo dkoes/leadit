@@ -60,13 +60,14 @@ class FragmentIndexer
 		vector<DataIndex> indices;
 		ofstream *sminaData;
 		ofstream *molData;
+		ofstream *pharmaData;
 
 		void readNext();
 		void setCurrent();
 
 		Outputter(const Outputter& rhs); //disable copy constructor since bad things will happen
 	public:
-		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), sminaData(NULL), molData(NULL) {}
+		Outputter(): fragments(NULL), position(0), confposition(0), stride(1), valid(false), sminaData(NULL), molData(NULL), pharmaData(NULL) {}
 
 		Outputter(vector<Fragment> *frags, const boost::filesystem::path& d, unsigned start, unsigned strd);
 
@@ -74,7 +75,8 @@ class FragmentIndexer
 		{
 			if(sminaData) delete sminaData;
 			if(molData) delete molData;
-			sminaData = molData = NULL;
+			if(pharmaData) delete pharmaData;
+			sminaData = molData = pharmaData = NULL;
 		}
 
 		operator bool() const

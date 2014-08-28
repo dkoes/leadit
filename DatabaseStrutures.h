@@ -24,18 +24,21 @@ struct DataIndex
 {
 	unsigned long molloc;
 	unsigned long sminaloc;
+	unsigned long pharmaloc;
 	//pharma data?
 
 	void write(std::ostream& out) const
 	{
 		RDKit::streamWrite(out, molloc);
 		RDKit::streamWrite(out, sminaloc);
+		RDKit::streamWrite(out, pharmaloc);
 	}
 
 	bool read(std::istream& in)
 	{
 		RDKit::streamRead(in, molloc);
 		RDKit::streamRead(in, sminaloc);
+		RDKit::streamRead(in, pharmaloc);
 		return in;
 	}
 };

@@ -15,6 +15,8 @@
 #include <vector>
 #include <string>
 
+using namespace std;
+
 struct PharmacophoreFeature
 {
 	std::string propName; //how stored in atoms
@@ -31,5 +33,8 @@ void assignPharmacophoreAtomProperties(RDKit::ROMOL_SPTR mol);
 
 //return bitmask of any pharmacophore feature atom is annotated with, -1 if none
 unsigned atomPharmacophoreProps(RDKit::Atom *atom);
+
+//write out the pharmacophore features in a semi indexed way
+void writePharmacophoreProps(const vector< pair<RDGeom::Point3D, unsigned> >& props, ostream& out);
 
 #endif /* PHARMACOPHORES_H_ */
