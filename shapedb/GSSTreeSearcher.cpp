@@ -12,6 +12,8 @@
 #include "Timer.h"
 #include "ShapeDistance.h"
 
+using namespace boost;
+
 //load a gsstree database by mmapping files, return true if successfull
 bool GSSTreeSearcher::load(const filesystem::path& dbpath)
 {
@@ -94,8 +96,7 @@ void GSSTreeSearcher::dc_search(ObjectTree smallobjTree,
 		sort(respos.begin(), respos.end());
 		for (unsigned i = 0, n = respos.size(); i < n; i++)
 		{
-			const char * addr = objects.begin() + respos[i].pos;
-			res.add(addr, respos[i].val);
+			res.add(objects.begin(), respos[i].pos, respos[i].val);
 		}
 	}
 
@@ -288,8 +289,7 @@ void GSSTreeSearcher::nn_search(ObjectTree smallobjTree,
 			{
 				cout << i << " " << ret[i].dist << "\n";
 			}
-			const char * addr = objects.begin() + ret[i].objpos;
-			res.add(addr, ret[i].dist);
+			res.add(objects.begin(), ret[i].objpos, ret[i].dist);
 		}
 	}
 
@@ -349,8 +349,7 @@ void GSSTreeSearcher::nn_scan(ObjectTree smallobjTree, ObjectTree bigobjTree,
 		res.reserve(respos.size());
 		for (unsigned i = 0, n = respos.size(); i < n; i++)
 		{
-			const char * addr = objects.begin() + respos[i].pos;
-			res.add(addr, respos[i].val);
+			res.add(objects.begin(), respos[i].pos, respos[i].val);
 		}
 	}
 
@@ -404,8 +403,7 @@ void GSSTreeSearcher::nn_search(ObjectTree objectTree,	unsigned k, double thresh
 			{
 				cout << i << " " << ret[i].dist << "\n";
 			}
-			const char * addr = objects.begin() + ret[i].objpos;
-			res.add(addr, ret[i].dist);
+			res.add(objects.begin(), ret[i].objpos, ret[i].dist);
 		}
 	}
 
@@ -462,8 +460,7 @@ void GSSTreeSearcher::nn_scan(ObjectTree objectTree, bool loadObjs, Results& res
 		res.reserve(respos.size());
 		for (unsigned i = 0, n = respos.size(); i < n; i++)
 		{
-			const char * addr = objects.begin() + respos[i].pos;
-			res.add(addr, respos[i].val);
+			res.add(objects.begin(), respos[i].pos, respos[i].val);
 		}
 	}
 
@@ -527,8 +524,7 @@ void GSSTreeSearcher::dc_scan_search(ObjectTree smallobjTree,
 		res.reserve(respos.size());
 		for (unsigned i = 0, n = respos.size(); i < n; i++)
 		{
-			const char * addr = objects.begin() + respos[i].pos;
-			res.add(addr, respos[i].val);
+			res.add(objects.begin(), respos[i].pos, respos[i].val);
 		}
 	}
 

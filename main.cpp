@@ -35,6 +35,7 @@
 #include "Reaction.h"
 #include "DatabaseCreator.h"
 #include "DatabaseSearcher.h"
+#include <GraphMol/FileParsers/MolWriters.h>
 
 using namespace std;
 
@@ -44,6 +45,7 @@ enum CommandEnum
 	AddMolecules,
 	SearchDatabase,
 	DatabaseInfo,
+	LigandInfo,
 	Server
 };
 
@@ -51,45 +53,68 @@ cl::opt<CommandEnum> Command(cl::desc("Operation to perform:"), cl::Required,
 		cl::values(clEnumVal(CreateDatabase, "Create a new reaction database"),
 				clEnumVal(AddMolecules,
 						"Add conformers to database (regenerates indices)"),
-				clEnumVal(SearchDatabase, "Search database for leadmaker query"),
+				clEnumVal(SearchDatabase,
+						"Search database for leadmaker query"),
 				clEnumVal(DatabaseInfo, "Print database information"),
+				clEnumVal(LigandInfo,
+						"Print decomposition of passed ligand(s)"),
 				clEnumVal(Server, "Start leadmaker server"),
 				clEnumValEnd));
 cl::list<string> Databases("dbdir", cl::desc("database directory(s)"));
 cl::list<string> inputFiles("in", cl::desc("input file(s)"));
-cl::list<string> outputFiles("out", cl::desc("output file(s)"));
+cl::opt<string> outputFile("out", cl::desc("output file"));
+
+cl::opt<string> IncludeMol("inc-mol",
+		cl::desc("Ligand minimum volume shape constraint."));
+cl::opt<double> IncludeShrink("inc-shrink",
+		cl::desc("Amount to reduce ligand minimum shape."), cl::init(0));
+cl::opt<string> ExcludeMol("exc-mol",
+		cl::desc("Receptor excluded shape constraint."));
+cl::opt<double> ExcludeShrink("exc-shrink",
+		cl::desc("Amount to reduce excluded shape."), cl::init(0));
+cl::opt<string> PharmaQuery("pharma",
+		cl::desc("Pharmacophore search constraints"));
+
+cl::opt<int> ReactantPos("rpos",
+		cl::desc("Reactant position to replace for search"), cl::init(-1));
+cl::opt<string> RefLigand("ref", cl::desc("Reference scaffold for search"));
 
 cl::opt<string> reactionFile("rxn", cl::desc("reaction SMARTS file"));
 
-cl::opt<bool> Force("force", cl::desc("Overwrite any existing database"), cl::init(false));
-cl::opt<double> ScaffoldRMSD("scaffold-rmsd",cl::desc("Maximum RMSD for scaffolds to be merged"), cl::init(0.5));
-cl::opt<double> ConnectCutoff("connect-cutoff",cl::desc("Maximum distance allowed between connection points"), cl::init(0.1));
-cl::opt<double> ReactantRMSD("reactant-rmsd",cl::desc("Maximum RMSD for reactants to be merged"), cl::init(0.5));
+cl::opt<bool> Force("force", cl::desc("Overwrite any existing database"),
+		cl::init(false));
+cl::opt<double> ScaffoldRMSD("scaffold-rmsd",
+		cl::desc("Maximum RMSD for scaffolds to be merged"), cl::init(0.5));
+cl::opt<double> ConnectCutoff("connect-cutoff",
+		cl::desc("Maximum distance allowed between connection points"),
+		cl::init(0.1));
+cl::opt<double> ReactantRMSD("reactant-rmsd",
+		cl::desc("Maximum RMSD for reactants to be merged"), cl::init(0.5));
 
 cl::opt<bool> Verbose("verbose", cl::desc("verbose output"));
 
 //create a database using command line arguments
 static void handle_create()
 {
-	if(Databases.size() == 0)
+	if (Databases.size() == 0)
 	{
 		cerr << "Require database for create\n";
 		exit(-1);
 	}
 
 	vector<filesystem::path> dbpaths;
-	for(unsigned i = 0, n = Databases.size(); i < n; i++)
+	for (unsigned i = 0, n = Databases.size(); i < n; i++)
 		dbpaths.push_back(filesystem::path(Databases[i]));
 
 	//reaction file
 	filesystem::path rxnf(reactionFile);
-	if(!filesystem::exists(rxnf))
+	if (!filesystem::exists(rxnf))
 	{
 		cerr << rxnf << " reaction file does not exist\n";
 		exit(-1);
 	}
 	Reaction rxn(rxnf);
-	if(!rxn.isValid())
+	if (!rxn.isValid())
 	{
 		cerr << "Invalid reaction\n";
 		exit(-1);
@@ -105,15 +130,15 @@ static void handle_create()
 	//open database for creation
 	DatabaseCreator dbcreator(dbpaths, rxn, config);
 
-	if(!dbcreator.isValid())
+	if (!dbcreator.isValid())
 	{
 		cerr << "Error creating database\n";
 		exit(-1);
 	}
-	for(unsigned i = 0, n = inputFiles.size(); i < n; i++)
+	for (unsigned i = 0, n = inputFiles.size(); i < n; i++)
 	{
 		filesystem::path infile(inputFiles[i]);
-		if(!filesystem::exists(infile))
+		if (!filesystem::exists(infile))
 		{
 			cerr << infile << " does not exists. Skipping.\n";
 			continue;
@@ -128,16 +153,17 @@ static void handle_create()
 //append to database using command line argument values
 static void handle_add()
 {
-	if(Databases.size() == 0)
+	if (Databases.size() == 0)
 	{
 		cerr << "Require database for add\n";
 		exit(-1);
 	}
 
 	vector<filesystem::path> dbpaths;
-	for(unsigned i = 0, n = Databases.size(); i < n; i++) {
+	for (unsigned i = 0, n = Databases.size(); i < n; i++)
+	{
 		filesystem::path dbpath = Databases[i];
-		if(!filesystem::exists(dbpath))
+		if (!filesystem::exists(dbpath))
 		{
 			cerr << dbpath << " does not exist\n";
 			exit(-1);
@@ -148,17 +174,16 @@ static void handle_add()
 	//open database for appending
 	DatabaseCreator dbcreator(dbpaths);
 
-
-	if(!dbcreator.isValid())
+	if (!dbcreator.isValid())
 	{
 		cerr << "Error opening database\n";
 		exit(-1);
 	}
 
-	for(unsigned i = 0, n = inputFiles.size(); i < n; i++)
+	for (unsigned i = 0, n = inputFiles.size(); i < n; i++)
 	{
 		filesystem::path infile(inputFiles[i]);
-		if(!filesystem::exists(infile))
+		if (!filesystem::exists(infile))
 		{
 			cerr << infile << " does not exists. Skipping.\n";
 			continue;
@@ -172,16 +197,17 @@ static void handle_add()
 
 static void handle_dbinfo()
 {
-	if(Databases.size() == 0)
+	if (Databases.size() == 0)
 	{
 		cerr << "Require database for dbinfo\n";
 		exit(-1);
 	}
 
 	vector<filesystem::path> dbpaths;
-	for(unsigned i = 0, n = Databases.size(); i < n; i++) {
+	for (unsigned i = 0, n = Databases.size(); i < n; i++)
+	{
 		filesystem::path dbpath = Databases[i];
-		if(!filesystem::exists(dbpath))
+		if (!filesystem::exists(dbpath))
 		{
 			cerr << dbpath << " does not exist\n";
 			exit(-1);
@@ -192,8 +218,7 @@ static void handle_dbinfo()
 	//open database for appending
 	DatabaseSearcher dbsearcher(dbpaths);
 
-
-	if(!dbsearcher.isValid())
+	if (!dbsearcher.isValid())
 	{
 		cerr << "Error opening database\n";
 		exit(-1);
@@ -203,6 +228,180 @@ static void handle_dbinfo()
 	cout << dbsearcher.totalConformers() << " total conformers available\n";
 }
 
+//print out information on all ligands in ligfile
+//if out is valid,
+static void print_ligand_info(Reaction& rxn, const string& ligfile,
+		ostream& out)
+{
+	ifstream inmols(ligfile.c_str());
+	iostreams::filtering_stream<iostreams::input> in;
+	if (filesystem::extension(ligfile) == ".gz")
+	{
+		in.push(iostreams::gzip_decompressor());
+	}
+	in.push(inmols);
+	MCForwardSDMolSupplier supplier(&in, false);
+	vector<MOL_SPTR_VECT> pieces;
+	vector<ROMOL_SPTR> core;
+
+	SDWriter writer(&out);
+	while (!supplier.atEnd())
+	{
+		ROMOL_SPTR mol = ROMOL_SPTR(supplier.next());
+		ROMOL_SPTR m(MolOps::addHs(*mol)); //for proper match must have hydrogens
+		rxn.decompose(m, pieces, core);
+		assert(core.size() == pieces.size());
+		for (unsigned i = 0, n = core.size(); i < n; i++)
+		{
+			cout << MolToSmiles(*core[i]) << "\t";
+			if (out)
+			{
+				//hack to quickly set name
+				out << "core ";
+				writer.write(*core[i]);
+			}
+			for (unsigned j = 0, m = pieces[i].size(); j < m; j++)
+			{
+				cout << MolToSmiles(*pieces[i][j]) << " ";
+				if (out)
+				{
+					//quickly set name
+					out << "piece" << j << " ";
+					writer.write(*pieces[i][j]);
+				}
+			}
+			cout << "\n";
+		}
+	}
+}
+
+//perform ligand decomposition
+static void handle_ligand_info()
+{
+	if (inputFiles.size() == 0)
+	{
+		cerr << "Need ligand input\n";
+		exit(-1);
+	}
+
+	ofstream out(outputFile.c_str());
+
+	if (Databases.size() > 0)
+	{
+		//if databases are specified, look for a matching reaction
+		BOOST_FOREACH(const string& dbfile, Databases)
+		{
+			filesystem::path rxnf = filesystem::path(dbfile) / "rxninfo";
+			ifstream rxnin(rxnf.c_str());
+			Reaction rxn;
+			rxn.read(rxnin);
+			BOOST_FOREACH(const string& ligfile, inputFiles)
+			{
+				print_ligand_info(rxn, ligfile, out);
+			}
+		}
+	}
+	else if (reactionFile.size() > 0)
+	{
+		filesystem::path rxnf(reactionFile);
+		ifstream rxnin(rxnf.c_str());
+		Reaction rxn;
+		rxn.read(rxnin);
+		BOOST_FOREACH(const string& ligfile, inputFiles)
+		{
+			print_ligand_info(rxn, ligfile, out);
+		}
+	}
+	else
+	{
+		cerr << "Need database or reaction file to analyze ligand\n";
+		exit(-1);
+	}
+}
+
+//read a single molecule from the file (assumed sdf)
+static ROMOL_SPTR readOneMol(const string& filename)
+{
+	ifstream inmols(filename.c_str());
+	iostreams::filtering_stream<iostreams::input> in;
+	if (filesystem::extension(filename) == ".gz")
+	{
+		in.push(iostreams::gzip_decompressor());
+	}
+	in.push(inmols);
+
+	ForwardSDMolSupplier molreader(&in, false);
+	ROMOL_SPTR mol(molreader.next());
+
+	return mol;
+}
+
+static void handle_search()
+{
+	if (ReactantPos < 0)
+	{
+		cerr << "Need position of reactant to replace\n";
+		exit(-1);
+	}
+
+	if (RefLigand.size() == 0)
+	{
+		cerr << "Need reference ligand for scaffold positioning\n";
+		exit(-1);
+	}
+
+	if (Databases.size() == 0)
+	{
+		cerr << "Need databases to search\n";
+		exit(-1);
+	}
+
+	//setup databases - must all be the same, just striped
+	vector<filesystem::path> dbpaths; dbpaths.reserve(Databases.size());
+	BOOST_FOREACH(const string& dbfile, Databases)
+	{
+		dbpaths.push_back(filesystem::path(dbfile));
+	}
+
+	DatabaseSearcher searcher(dbpaths);
+
+	if(!searcher.isValid())
+	{
+		cerr << "Problem reading in database\n";
+		exit(-1);
+	}
+
+	//read in reference ligand
+	ROMOL_SPTR refmol = readOneMol(RefLigand);
+
+	MolecularQueryObject small, big(true);
+
+	if(IncludeMol.size() > 0)
+	{
+		ROMOL_SPTR smalllig = readOneMol(IncludeMol);
+		small = MolecularQueryObject(*smalllig, IncludeShrink, false);
+	}
+	if(ExcludeMol.size() > 0)
+	{
+		ROMOL_SPTR biglig = readOneMol(ExcludeMol);
+		big = MolecularQueryObject(*biglig, ExcludeShrink, true);
+	}
+
+
+	vector<DatabaseSearcher::Result> results;
+	searcher.search(refmol, ReactantPos, small, big, results);
+
+	cout << results.size() << " hits\n";
+
+	if(outputFile.size() > 0)
+	{
+		ofstream out(outputFile.c_str());
+		BOOST_FOREACH(DatabaseSearcher::Result& r, results)
+		{
+			searcher.writeSDF(r, out);
+		}
+	}
+}
 
 int main(int argc, char *argv[])
 {
@@ -219,7 +418,12 @@ int main(int argc, char *argv[])
 		case DatabaseInfo:
 			handle_dbinfo();
 			break;
-		case SearchDatabase: //f
+		case LigandInfo:
+			handle_ligand_info();
+			break;
+		case SearchDatabase:
+			handle_search();
+			break;
 		case Server: //f
 		default:
 			cerr << "Command not yet implemented\n";

@@ -385,6 +385,13 @@ bool ScaffoldIndexer::findBest(const ECoords& coords,
 	}
 }
 
+void ScaffoldIndexer::addRotation(unsigned s, const ECoords& coords, Orienter& orient)
+{
+	EMatrix3 rot = computeRotation(clusters[s].center, coords);
+	orient.addRotation(rot);
+}
+
+
 //add a new scaffold conformation as represented by coords, will
 //only create a new cluster if necessary, returns the cluster index
 unsigned ScaffoldIndexer::addScaffold(const Conformer& core, Orienter& orient)
@@ -406,8 +413,7 @@ unsigned ScaffoldIndexer::addScaffold(const Conformer& core, Orienter& orient)
 		assert(idx.size() > 0);
 		unsigned index = idx[0];
 		clusters[index].count++;
-		EMatrix3 rot = computeRotation(clusters[index].center, coords);
-		orient.addRotation(rot);
+		addRotation(index, coords, orient);
 		return index;
 	}
 }

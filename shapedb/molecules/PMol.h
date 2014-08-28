@@ -274,4 +274,27 @@ public:
 
 };
 
+
+//uses a fixed size buffer (so can be stack allocated)
+//dies if buffer isn't big enough
+class PMolReaderSimple: public PMolReader
+{
+	static const int buffsize = 8192;
+	char buffer[buffsize];
+protected:
+	virtual void* allocate(unsigned size) {
+		assert(size < buffsize);
+		return (void*) buffer;
+	}
+public:
+	PMolReaderSimple()
+	{
+	}
+
+	~PMolReaderSimple()
+	{
+	}
+
+};
+
 #endif /* PMOL_H_ */

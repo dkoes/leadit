@@ -16,7 +16,8 @@
 #include "shapedb/molecules/RDMoleculeAnalytic.h"
 #include "Orienter.h"
 #include "shapedb/MemMapped.h"
-#include "DataIndex.h"
+#include "DatabaseStrutures.h"
+
 using namespace std;
 
 //searches a single directory
@@ -29,6 +30,17 @@ class FragmentSearcher
 	MemMapped molData;
 
 public:
+	//result of fragment search
+	struct Result
+	{
+		unsigned pos;
+		double score;
+
+		Result(): pos(0), score(0) {}
+
+		Result(unsigned p, double s): pos(p), score(s) {}
+	};
+
 	FragmentSearcher() {}
 	 ~FragmentSearcher() {}
 
@@ -36,6 +48,12 @@ public:
 	bool read(const boost::filesystem::path& indirs);
 
 	unsigned size() const { return indices.size(); }
+
+	void search(GSSTreeSearcher::ObjectTree small, GSSTreeSearcher::ObjectTree big, vector< Result>& results); //TODO pharma
+
+	//write sdf at pos to out
+	void writeSDF(unsigned pos, ostream& out) const;
+
 };
 
 #endif /* FRAGMENTSEARCHER_H_ */

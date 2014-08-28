@@ -6,6 +6,7 @@
  */
 
 #include <FragmentSearcher.h>
+#include "shapedb/molecules/PMol.h"
 
 using namespace boost;
 
@@ -35,4 +36,31 @@ bool FragmentSearcher::read(const boost::filesystem::path& dir)
 	return true;
 
 
+}
+
+//perform a distance constraint search on our gss tree and return the results
+//TODO: pharmacophore constraints as well
+void FragmentSearcher::search(GSSTreeSearcher::ObjectTree small, GSSTreeSearcher::ObjectTree big, vector< Result>& results)
+{
+	results.clear();
+
+	PositionResults res;
+	cout << "smvol " << small->volume() << "\tbigvol " << big->volume() << "\n";
+	gsstree.dc_search(small, big, GSSTreeSearcher::ObjectTree(), true, res);
+
+	//okay, not the most efficient in the world..
+	results.reserve(res.size());
+	for(unsigned i = 0, n = res.size(); i < n; i++)
+	{
+		results.push_back(Result(res.getPosition(i), res.getScore(i)));
+	}
+}
+
+void FragmentSearcher::writeSDF(unsigned pos, ostream& out) const
+{
+	PMolReaderSimple reader;
+	assert(pos < indices.size());
+	const char *data = molData.begin() + indices[pos].molloc;
+	PMol *pmol = reader.readPMol(data);
+	pmol->writeSDF(out);
 }

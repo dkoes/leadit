@@ -108,14 +108,14 @@ class GSSTreeSearcher
 			const MappableOctTree *min, const MappableOctTree *max);
 
 public:
-	typedef shared_ptr<const MappableOctTree> ObjectTree;
+	typedef boost::shared_ptr<const MappableOctTree> ObjectTree;
 
 	GSSTreeSearcher(bool v = false) :
 			verbose(v), total(0)
 	{
 	}
 
-	bool load(const filesystem::path& dbpath);
+	bool load(const boost::filesystem::path& dbpath);
 	void clear();
 	~GSSTreeSearcher();
 
@@ -180,7 +180,7 @@ public:
 		if (invert) //treat as excluded vol
 			objTree->invert();
 
-		return shared_ptr<const MappableOctTree>(objTree, free);
+		return boost::shared_ptr<const MappableOctTree>(objTree, free);
 	}
 
 	float getDimension() const

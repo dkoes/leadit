@@ -23,7 +23,7 @@
 #include "shapedb/molecules/RDMoleculeAnalytic.h"
 #include "Orienter.h"
 #include "MolMatcher.h"
-#include "DataIndex.h"
+#include "DatabaseStrutures.h"
 
 using namespace std;
 
@@ -87,11 +87,6 @@ class FragmentIndexer
 		{
 			return current;
 		}
-
-		//default dimension for gss tree
-		float getDimension() const { return 64; }
-		//default resolution
-		float getResolution() const { return 0.5; }
 
 		void operator++()
 		{

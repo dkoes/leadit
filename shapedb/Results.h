@@ -26,7 +26,9 @@ public:
 	virtual void clear()
 	{
 	}
-	virtual void add(const char *data, double score) = 0;
+
+	//add result that is located at position within the databegin array with score
+	virtual void add(const char *databegin, unsigned position, double score) = 0;
 
 	virtual void reserve(unsigned n)
 	{
@@ -53,10 +55,12 @@ class StringResults: public Results
 	virtual void clear()
 	{
 		strs.clear();
+		scores.clear();
 	}
-	virtual void add(const char *data, double score)
+	virtual void add(const char *data, unsigned position, double score)
 	{
-		strs.push_back(data); //better be null terminated
+		const char * addr = data + position;
+		strs.push_back(addr); //better be null terminated
 		scores.push_back(score);
 	}
 	virtual void reserve(unsigned n)
@@ -70,6 +74,44 @@ class StringResults: public Results
 	}
 
 	const string& getString(unsigned i) const { return strs[i]; }
+	double getScore(unsigned i) const { return scores[i]; }
+};
+
+//for results where there aren't any actual objects, we just want the position
+//stored in the tree
+class PositionResults: public Results
+{
+	std::vector<unsigned> positions;
+	std::vector<double> scores;
+	public:
+	PositionResults()
+	{
+	}
+	virtual ~PositionResults()
+	{
+	}
+
+	virtual void clear()
+	{
+		positions.clear();
+		scores.clear();
+	}
+	virtual void add(const char *data, unsigned position, double score)
+	{
+		positions.push_back(position); //better be null terminated
+		scores.push_back(score);
+	}
+	virtual void reserve(unsigned n)
+	{
+		positions.reserve(n);
+		scores.reserve(n);
+	}
+	virtual unsigned size() const
+	{
+		return positions.size();
+	}
+
+	unsigned getPosition(unsigned i) const { return positions[i]; }
 	double getScore(unsigned i) const { return scores[i]; }
 };
 

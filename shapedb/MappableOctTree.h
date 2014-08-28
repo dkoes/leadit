@@ -83,10 +83,9 @@ struct MChildNode
 	{
 		//you would think there would be a more portably way to get this bit-packed alignment,
 		//but I couldn't figure one out - isLeafs should overlap
+
 		bool isLeaf :1;
-#if GSS_PROPERTY_BITS > 0
-		unsigned properties : GSS_PROPERTY_BITS; //annotations - generally not copied
-#endif
+
 		struct
 		{
 			bool isLeaf :1;
@@ -358,7 +357,7 @@ private:
 					}
 				}
 				tree[pos].vol += child.volume(tree, newc.volume());
-				GSS_PROPERTIES(ret) |= GSS_PROPERTIES(child); //properties propagate by union
+				GSS_PROPERTIES(ret.leaf) |= GSS_PROPERTIES(child.leaf); //properties propagate by union
 			}
 			//are all the children full or empty? then can represent as a pattern
 			if (filledcnt == 8)

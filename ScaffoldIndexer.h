@@ -51,6 +51,8 @@ class ScaffoldIndexer
 	void createCanonicalCoords(const Conformer& core, ECoords& coords, Orienter& orient) const;
 
 	static EMatrix3 computeRotation(const ECoords& ref, const ECoords& fit);
+
+	friend class DatabaseSearcher;
 public:
 
 	ScaffoldIndexer(): rmsdCutoffSq(0), connectCutoffSq(0), numAtoms(0) {}
@@ -69,10 +71,15 @@ public:
 	//if the best match does not meet the matching criteria, return false
 	bool findBest(const ECoords& coords, vector<unsigned>& idx) const;
 
+
+	//compute the optimal rotation between cluster s and coords and add it to orient
+	void addRotation(unsigned s, const ECoords& coords, Orienter& orient);
+
 	//add a new scaffold conformation as represented by coords, will
 	//only create a new cluster if necessary, returns the cluster index
 	//returns the orienter needed to align molecule to chosen scaffold
 	unsigned addScaffold(const Conformer& core, Orienter& orient);
+
 
 	unsigned size() const { return clusters.size(); }
 

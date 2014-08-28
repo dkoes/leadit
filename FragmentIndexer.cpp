@@ -272,7 +272,8 @@ void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
 		filesystem::path gdir = d / "gss";
 		if(filesystem::exists(gdir)) //add case - need to replace
 			filesystem::remove_all(gdir);
-		if (!creator.create<RDMolecule, Outputter>(d / "gss", *writers[i], writers[i]->getDimension(), writers[i]->getResolution(), true))
+		if (!creator.create<RDMolecule, Outputter>(d / "gss", *writers[i],
+				DEFAULT_GSS_DIMENSION, DEFAULT_GSS_RESOLUTION, true))
 		{
 			cerr << "Error creating gss database " << d << "\n";
 			exit(-1);

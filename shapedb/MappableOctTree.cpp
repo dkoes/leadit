@@ -1085,6 +1085,7 @@ void MappableOctTree::dumpAD4Grid(ostream& out, float res) const
 	}
 }
 
+
 #include <arpa/inet.h>
 
 //sproxel csv format, voxelValue is the string to specify voxels occupied by the object

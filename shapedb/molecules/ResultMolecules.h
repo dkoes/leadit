@@ -17,7 +17,6 @@
 #include "PMol.h"
 #include "Results.h"
 using namespace std;
-using namespace boost;
 
 class ResultMolecules: public Results
 {
@@ -26,7 +25,7 @@ class ResultMolecules: public Results
 	vector<double> scores;
 
 	bool uniqueify; //true if should only grab one conformer
-	unordered_map<string, unsigned > seen; //map titles to position for uniquification
+	boost::unordered_map<string, unsigned > seen; //map titles to position for uniquification
 public:
 	ResultMolecules(bool uniq=false): uniqueify(uniq)
 	{
