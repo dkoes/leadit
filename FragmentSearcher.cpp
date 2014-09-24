@@ -34,8 +34,6 @@ bool FragmentSearcher::read(const boost::filesystem::path& dir)
 	sminaData.map(smdata.string(), true, false); //not checking return value because I haven't implemented this yet, hopefully I will remember to come back here and fix it after implementing it
 
 	return true;
-
-
 }
 
 //perform a distance constraint search on our gss tree and return the results
