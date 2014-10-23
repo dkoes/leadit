@@ -1,7 +1,7 @@
 /*
  * DatabaseSearcher.h
  *
- *  Class for reading in a leadmaker database for searching and ligand analysis.
+ *  Class for reading in a leadit database for searching and ligand analysis.
  *  Created on: Aug 26, 2014
  *      Author: dkoes
  */

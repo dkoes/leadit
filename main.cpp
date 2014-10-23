@@ -2,11 +2,11 @@
  * 5/21/2014
  * David Koes (dkoes@pitt.edu)
  *
- * The intent for leadmaker is that it will enable lead optimization of existing
+ * The intent for leadit is that it will enable lead optimization of existing
  * hits by deconstructing a ligand's chemistry and, using the same reaction pathway,
  * reconstruct alternative leads that match specified shape and pharmacophore criteria.
  *
- * leadmaker constructs databases of molecular fragments.  Each database is
+ * leadit constructs databases of molecular fragments.  Each database is
  * constructed around a single reaction framework.  It is populated using
  * conformers that are compatible with that framework.  A minimal scaffold is
  * identified from the reaction.  Scaffold conformers are clustered with respect
@@ -54,11 +54,11 @@ cl::opt<CommandEnum> Command(cl::desc("Operation to perform:"), cl::Required,
 				clEnumVal(AddMolecules,
 						"Add conformers to database (regenerates indices)"),
 				clEnumVal(SearchDatabase,
-						"Search database for leadmaker query"),
+						"Search database for leadit query"),
 				clEnumVal(DatabaseInfo, "Print database information"),
 				clEnumVal(LigandInfo,
 						"Print decomposition of passed ligand(s)"),
-				clEnumVal(Server, "Start leadmaker server"),
+				clEnumVal(Server, "Start leadit server"),
 				clEnumValEnd));
 cl::list<string> Databases("dbdir", cl::desc("database directory(s)"));
 cl::list<string> inputFiles("in", cl::desc("input file(s)"));

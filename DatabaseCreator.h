@@ -5,7 +5,7 @@
  *      Author: dkoes
  *
  *  This class contains the data structures and algorithms necessary
- *  to create a searchable leadmaker database.
+ *  to create a searchable leadit database.
  */
 
 #ifndef DATABASECREATOR_H_

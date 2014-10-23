@@ -24,7 +24,7 @@ using namespace std;
  * This is necessary because boost's isomorphism function can't deal with
  * disconnected graphs nor is it easy to break ties with positions
  *
- * This is designed around several assumptions that appropriate for leadmaker:
+ * This is designed around several assumptions that appropriate for leadit:
  * -the common case is that there is a one-to-one matching between indices
  * -the two fragments are aligned to close atoms probably match
  */
