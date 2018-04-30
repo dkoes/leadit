@@ -327,6 +327,18 @@ static ROMOL_SPTR readOneMol(const string& filename)
 	if (filesystem::extension(filename) == ".gz")
 	{
 		in.push(iostreams::gzip_decompressor());
+
+		string stripped = filename.substr(0,filename.find_last_of("."));
+		if (filesystem::extension(stripped) != ".sdf")
+		{
+	    cerr << "Sorry, currently only sdf files are supported, " << filename << " does not appear to be an sdf.\n";
+	    exit(-1);
+		}
+	}
+	else if (filesystem::extension(filename) != ".sdf")
+	{
+	  cerr << "Sorry, currently only sdf files are supported, " << filename << " does not appear to be an sdf.\n";
+	  exit(-1);
 	}
 	in.push(inmols);
 

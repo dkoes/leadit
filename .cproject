@@ -81,9 +81,15 @@
                             							
                             <tool id="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug.553474173" name="GCC C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.exe.debug">
                                 								
-                                <option id="gnu.cpp.link.option.libs.1176728914" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
+                                <option id="gnu.cpp.link.option.libs.1176728914" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
                                     									
                                     <listOptionValue builtIn="false" value="boost_iostreams"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="Fingerprints"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="PartialCharges"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="Descriptors"/>
                                     									
                                     <listOptionValue builtIn="false" value="RDGeneral"/>
                                     									
@@ -189,11 +195,11 @@
                     					
                     <folderInfo id="cdt.managedbuild.config.gnu.exe.release.223609133." name="/" resourcePath="">
                         						
-                        <toolChain id="cdt.managedbuild.toolchain.gnu.exe.release.868674641" name="Linux GCC" superClass="cdt.managedbuild.toolchain.gnu.exe.release">
+                        <toolChain id="cdt.managedbuild.toolchain.gnu.exe.release.868674641" name="Linux GCC" nonInternalBuilderId="cdt.managedbuild.target.gnu.builder.exe.release" superClass="cdt.managedbuild.toolchain.gnu.exe.release">
                             							
                             <targetPlatform id="cdt.managedbuild.target.gnu.platform.exe.release.1746879285" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.exe.release"/>
                             							
-                            <builder buildPath="${workspace_loc:/leadmaker}/Release" id="cdt.managedbuild.target.gnu.builder.exe.release.696398427" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="cdt.managedbuild.target.gnu.builder.exe.release"/>
+                            <builder buildPath="${workspace_loc:/leadit}/Release" id="cdt.managedbuild.target.gnu.builder.exe.release.1074406787" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="cdt.managedbuild.target.gnu.builder.exe.release"/>
                             							
                             <tool id="cdt.managedbuild.tool.gnu.archiver.base.1515877424" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.base"/>
                             							
@@ -240,6 +246,12 @@
                                 <option id="gnu.cpp.link.option.libs.570978495" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
                                     									
                                     <listOptionValue builtIn="false" value="boost_iostreams"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="Fingerprints"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="PartialCharges"/>
+                                    									
+                                    <listOptionValue builtIn="false" value="Descriptors"/>
                                     									
                                     <listOptionValue builtIn="false" value="RDGeneral"/>
                                     									
