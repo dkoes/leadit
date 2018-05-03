@@ -54,11 +54,11 @@ void FragmentSearcher::search(GSSTreeSearcher::ObjectTree small, GSSTreeSearcher
 	}
 }
 
-void FragmentSearcher::writeSDF(unsigned pos, ostream& out) const
+void FragmentSearcher::writeSDF(unsigned pos, const Orienter& orient, ostream& out) const
 {
 	PMolReaderSimple reader;
 	assert(pos < indices.size());
 	const char *data = molData.begin() + indices[pos].molloc;
 	PMol *pmol = reader.readPMol(data);
-	pmol->writeSDF(out);
+	pmol->writeSDF(out, orient);
 }

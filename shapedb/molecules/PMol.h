@@ -17,34 +17,12 @@
 #include <openbabel/mol.h>
 #include <vector>
 #include <rdkit/GraphMol/ROMol.h>
+#include "../Orienter.h"
 
 using namespace std;
 
 #define MAX_BONDS 3
 
-/* This is just a sub for now - eventually we'll need it and pull it out into it's own file */
-class RMSDResult
-{
-	//floats to save space, actual computation must be done in double precision though
-	float val;
-
-
-	friend class RMSDCalculator;
-public:
-	RMSDResult(): val(0)
-	{
-
-	}
-
-	double value() const { return val; }
-
-	void reorient(unsigned n, float *coords) const
-	{
-	}
-
-
-	friend ostream& operator<<(ostream& out, const RMSDResult& r);
-};
 
 struct FloatCoord
 {
@@ -210,18 +188,24 @@ public:
 	//write sdf with associated meta data
 	//rotate/translate points if requested
 	void writeSDF(ostream& out, const vector<ASDDataItem>& sddata,
-			const RMSDResult& rms);
+			const Orienter& rms);
 
-	void writeSDF(ostream& out, const vector<ASDDataItem>& sddata)
+	void writeSDF(ostream& out, const Orienter& rms)
 	{
-		RMSDResult rdummy;
-		writeSDF(out, sddata, rdummy);
+    vector<ASDDataItem> dummy;
+		writeSDF(out, dummy, rms);
 	}
+
+  void writeSDF(ostream& out, const vector<ASDDataItem>& sddata)
+  {
+    Orienter rdummy;
+    writeSDF(out, sddata, rdummy);
+  }
 
 	void writeSDF(ostream& out)
 	{
 		vector<ASDDataItem> dummy;
-		RMSDResult rdummy;
+		Orienter rdummy;
 		writeSDF(out, dummy, rdummy);
 	}
 

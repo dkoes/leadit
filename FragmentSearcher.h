@@ -52,7 +52,7 @@ public:
 	void search(GSSTreeSearcher::ObjectTree small, GSSTreeSearcher::ObjectTree big, vector< Result>& results); //TODO pharma
 
 	//write sdf at pos to out
-	void writeSDF(unsigned pos, ostream& out) const;
+	void writeSDF(unsigned pos, const Orienter& orient, ostream& out) const;
 
 };
 

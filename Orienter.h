@@ -11,6 +11,7 @@
 #define ORIENTER_H_
 
 #include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
 #include <vector>
 #include <rdkit/Geometry/point.h>
 
@@ -28,6 +29,11 @@ class Orienter
 					Eigen::Matrix3d::Identity())
 	{
 
+	}
+
+	bool isIdentity() const
+	{
+	  return translate == Eigen::Vector3d::Zero() && rotate == Eigen::Matrix3d::Identity();
 	}
 
 	//accumlate a translation vector
@@ -59,6 +65,36 @@ class Orienter
 			coords[i].z = pt(2);
 		}
 	}
+
+	//apply inverse transformation
+	void unorient(unsigned n, float *coords) const
+	{
+    using namespace Eigen;
+    std::vector<EVector3> pnts(n);
+    for(unsigned i = 0; i < n; i++)
+    {
+      pnts[i] = EVector3(coords[3*i],coords[3*i+1],coords[3*i+2]);
+    }
+
+    unorient(pnts);
+
+    for(unsigned i = 0; i < n; i++)
+    {
+      coords[3*i] = pnts[i].coeff(0);
+      coords[3*i+1] = pnts[i].coeff(1);
+      coords[3*i+2] = pnts[i].coeff(2);
+    }
+	}
+
+  void unorient(std::vector<EVector3>& pnts) const
+  {
+    EMatrix3 inv = rotate.inverse();
+    for(unsigned i = 0, n = pnts.size(); i < n; i++)
+    {
+      pnts[i] = inv*pnts[i]-translate;
+    }
+  }
+
 };
 
 #endif /* ORIENTER_H_ */

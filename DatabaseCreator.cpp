@@ -164,7 +164,11 @@ void DatabaseCreator::add(const filesystem::path& molfile,
 
 		//compute pharmacophore features of mol and annotate atoms with feature types
 		assignPharmacophoreAtomProperties(m);
-		rxn.decompose(m, pieces, core);
+		if(!rxn.decompose(m, pieces, core))
+		{
+		  std::cerr << "WARNING: Could not decompose " << RDKit::MolToSmiles(*m) << "\n";
+		  continue;
+		}
 		assert(pieces.size() == core.size());
 
 		//treat each match separately - highly similar confs will get weeded out anyway

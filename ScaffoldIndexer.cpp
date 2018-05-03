@@ -256,6 +256,7 @@ void ScaffoldIndexer::createCanonicalCoords(const Conformer& core,
 	sort(connecting.begin(), connecting.end());
 	sort(remaining.begin(), remaining.end());
 
+	//WARNING: it isn't clear the following is correct if there are only two atoms
 	coords = ECoords::Zero(mol.getNumAtoms(), 3);
 
 	//connecting always go first

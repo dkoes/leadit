@@ -465,16 +465,16 @@ double PMol::getMolWeight() const
 
 //write sdf with associated meta data
 void PMol::writeSDF(ostream& out, const vector<ASDDataItem>& sddata,
-		const RMSDResult& rms)
+		const Orienter& rms)
 {
 	vector<FloatCoord> transformed;
 	FloatCoord *coords = header.coords;
-	if (rms.value() > 0)
+	if (!rms.isIdentity())
 	{
 		//transform a copy of the points
 		transformed.insert(transformed.begin(), coords, coords + header.nAtoms);
 		coords = &transformed[0];
-		rms.reorient(transformed.size(), (float*)coords);
+		rms.unorient(transformed.size(), (float*)coords);
 	}
 
 	//line 1 - name

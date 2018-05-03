@@ -7,6 +7,7 @@
 
 #include <DatabaseSearcher.h>
 #include <fstream>
+#include <rdkit/GraphMol/FileParsers/MolWriters.h>
 
 DatabaseSearcher::DatabaseSearcher(const vector<filesystem::path>& dbs) :
 		dbpaths(dbs)
@@ -99,6 +100,7 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 	vector<ROMOL_SPTR> core;
 	ROMOL_SPTR m(MolOps::addHs(*ref)); //for proper match must have hydrogens
 	rxn.decompose(m, pieces, core);
+	orienters.clear();
 
 	//for each core conformer
 	for (unsigned c = 0, nc = core.size(); c < nc; c++)
@@ -108,6 +110,7 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 		//canonicalize coordinates and add translation to orientation
 		ECoords coords;
 		const Conformer& coreconf = core[c]->getConformer();
+
 		scaffoldIndex.createCanonicalCoords(coreconf,coords, coreorient);
 
 		//find any matching scaffolds
@@ -120,6 +123,18 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 			//compute necessary rotation for this scaffold
 			Orienter scaffoldorient(coreorient);
 			scaffoldIndex.addRotation(s, coords, scaffoldorient);
+
+			orienters.push_back(scaffoldorient);
+
+	    ofstream str("pieces.sdf");
+	    RDKit::SDWriter writer(&str);
+	    scaffoldorient.reorient(core[c]->getConformer().getPositions());
+	    writer.write(*core[c]);
+	    BOOST_FOREACH(ROMOL_SPTR p, pieces[c])
+	    {
+	      scaffoldorient.reorient(p->getConformer().getPositions());
+	      writer.write(*p);
+	    }
 
 			//apply orientation to query structures
 			GSSTreeSearcher::ObjectTree miv = small.getObjectTree(scaffoldorient);
@@ -136,7 +151,7 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 				//expand results to fully specify positions
 				BOOST_FOREACH(FragmentSearcher::Result& fr, fragResults)
 				{
-					results.push_back(Result(s,reactant,d,fr));
+				  results.push_back(Result(s,reactant,d,orienters.size()-1,fr));
 				}
 			}
 		}
@@ -146,7 +161,8 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 void DatabaseSearcher::writeSDF(const Result& res, ostream& out) const
 {
 	const FragmentSearcher& searcher = fragments[res.scaffoldPos][res.reactantPos][res.dir];
-	searcher.writeSDF(res.fragRes.pos, out);
+	const Orienter& orient = orienters[res.orientIndex];
+	searcher.writeSDF(res.fragRes.pos, orient, out);
 }
 
 

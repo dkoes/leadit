@@ -26,6 +26,7 @@ class DatabaseSearcher
 	ScaffoldIndexer scaffoldIndex;
 
 	vector<vector<vector<FragmentSearcher> > > fragments; //index first by scaffold position, then by reactant position, then by dir
+	vector<Orienter> orienters; //transformations needed to adjust fragments to input coordinate system
 	bool valid;
 
 public:
@@ -36,16 +37,17 @@ public:
 		unsigned scaffoldPos;
 		unsigned reactantPos;
 		unsigned dir;
+		unsigned orientIndex;
 		FragmentSearcher::Result fragRes;
 
 		Result() :
-				scaffoldPos(0), reactantPos(0), dir(0)
+				scaffoldPos(0), reactantPos(0), dir(0), orientIndex(0)
 		{
 		}
 
-		Result(unsigned s, unsigned r, unsigned d,
+		Result(unsigned s, unsigned r, unsigned d, unsigned o,
 				const FragmentSearcher::Result& fr) :
-				scaffoldPos(s), reactantPos(r), dir(d), fragRes(fr)
+				scaffoldPos(s), reactantPos(r), dir(d), orientIndex(o), fragRes(fr)
 		{
 		}
 	};

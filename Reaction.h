@@ -31,7 +31,39 @@ using namespace RDKit;
 
 class Reaction
 {
+public: //types
 	typedef shared_ptr<ChemicalReaction> ChemRxnPtr;
+  struct Connection
+  {
+    //record information on the junction between fragments
+    int coreIndex;
+    int reactantIndex; //indices are from the molecule provided to decompose
+    int coreMap; // mappings from reaction
+    int reactantMap;
+    Bond::BondType order;
+
+    Connection(): coreIndex(-1), reactantIndex(-1), coreMap(-1), reactantMap(-1), order(Bond::UNSPECIFIED) {}
+
+    //so we can cannonicalize ordering of connections
+    bool operator<(const Connection& rhs) const
+    {
+      //unsigned casts put negative numbers last
+      if(coreMap == rhs.coreMap)
+        return (unsigned)reactantMap < (unsigned)rhs.reactantMap;
+      else
+        return (unsigned)coreMap < (unsigned)rhs.coreMap;
+    }
+  };
+
+  struct Decomposition
+  {
+    //store information for a single fragmentation
+    vector<int> core; //atom indices of core
+    vector< vector<int> > pieces; //of remaining fragments, indexed by reactant index
+    vector< vector<Connection> > connections; //connections from core to fragments, indexed by reactant index, should be sorted
+  };
+
+private:
 	ChemRxnPtr reverseRxn; //reaction
 	ROMOL_SPTR product; //this is actually the left of the reaction
 	vector<ROMOL_SPTR> reactants;
@@ -42,7 +74,9 @@ class Reaction
 
 	void findCoreAndReactants();
 	void uniqueCoresOnly(vector<MatchVectType>& matches);
-	public:
+	bool decompFromMatch(ROMOL_SPTR m, const MatchVectType &match, Decomposition& decomp);
+
+public:
 
 	Reaction()
 	{
@@ -84,6 +118,11 @@ class Reaction
 	//return false on failure
 	bool decompose(ROMOL_SPTR m, vector<MOL_SPTR_VECT>& react,
 			vector<ROMOL_SPTR>& core);
+
+	//identify the decomposition of molecule m by this reaction using its
+	//indices, without extracting submols.  Return true if successful
+	//decomp length is number of matches
+  bool decompose(ROMOL_SPTR m, vector<Decomposition>& decomp);
 
 	friend ostream& operator<<(ostream &out, const Reaction &r); //for debugging
 

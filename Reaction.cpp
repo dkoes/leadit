@@ -200,6 +200,7 @@ static int getMolReact(ROMOL_SPTR m, unsigned idx, vector<int>& molreactants, ve
 			nbrIdx != endNbrs; ++nbrIdx)
 	{
 		int neighReact = getMolReact(m, *nbrIdx, molreactants, molincore);
+		//TODO: should check that reactants aren't overlapping
 		if(neighReact >= 0)
 		{
 			molreactants[idx] = neighReact;
@@ -245,6 +246,17 @@ static void copyMapNums(ROMol& src, ROMol& dest, const MatchVectType & mapping)
 	}
 }
 
+//return mapnum or -1 if not set
+static int getMapNum(const Atom* a)
+{
+	if(a->hasProp(ATOM_MAP_NUM))
+	{
+		int mapnum = 0;
+		a->getProp(ATOM_MAP_NUM, mapnum);
+		return mapnum;
+	}
+	return -1;
+}
 
 //reduce matches to only those that differ on the core scaffold
 void Reaction::uniqueCoresOnly(vector<MatchVectType>& matches)
@@ -278,6 +290,121 @@ void Reaction::uniqueCoresOnly(vector<MatchVectType>& matches)
 	}
 
 	swap(matches,newmatches);
+}
+
+//use match to break m into pieces
+bool Reaction::decompFromMatch(ROMOL_SPTR m, const MatchVectType &match,
+		Decomposition& decomp)
+{
+	decomp.core.clear(); //molcoreAtoms
+	decomp.pieces.clear();
+	decomp.pieces.resize(reactants.size()); //reactAtoms
+
+	vector<int> molreactants(m->getNumAtoms(), -2); //indexed by atom index, what reactant each atom is part of
+	vector<bool> molincore(m->getNumAtoms(), false); //bitvector index by atom of core or not
+	copyMapNums(*product, *m, match);
+
+	//each match is a pair (query, mol) where query is our product
+	for (unsigned j = 0, num = match.size(); j < num; j++)
+	{
+		unsigned prodatom = match[j].first;
+		unsigned molatom = match[j].second;
+		if (coreScaffoldSet.count(prodatom))
+		{
+			molincore[molatom] = true;
+			decomp.core.push_back(molatom);
+		}
+		molreactants[molatom] = productReactants[prodatom];
+	}
+
+	//for each reactant, need to identify the part of m that came from that
+	//reactant but that isn't part of the core scaffold
+	for (ROMol::AtomIterator itr = m->beginAtoms(), end = m->endAtoms();
+			itr != end; ++itr)
+	{
+		Atom *mola = *itr;
+		unsigned idx = mola->getIdx();
+
+		if (!molincore[idx])
+		{
+			int r = getMolReact(m, idx, molreactants, molincore);
+			assert(r >= 0);
+			assert(r < (int )decomp.pieces.size());
+			if (mola->getAtomicNum() != 1) //ignore hydrogens
+				decomp.pieces[r].push_back(idx);
+		}
+	}
+
+	//each atom of mol is now labeled with what reactant it belongs to, although
+	//some core atoms may still be unlabeled
+	//need to identify the connections between non-core and core
+	decomp.connections.resize(reactants.size()); //index by reactant first
+	for (ROMol::BondIterator itr = m->beginBonds(), end = m->endBonds();
+			itr != end; ++itr)
+	{
+		Bond *bond = *itr;
+		unsigned a = bond->getBeginAtomIdx();
+		unsigned b = bond->getEndAtomIdx();
+
+		if (molincore[a] != molincore[b])
+		{
+			int core = -1, react = -1;
+			if(molincore[a]) {
+				core = a;
+				react = b;
+			}
+			else {
+				core = b;
+				react = a;
+			}
+
+			Connection conn;
+			conn.coreIndex = core;
+			conn.reactantIndex = react;
+			conn.coreMap = getMapNum(m->getAtomWithIdx(core));
+			conn.reactantMap = getMapNum(m->getAtomWithIdx(react));
+			conn.order = bond->getBondType();
+
+			int r = molreactants[react];
+			assert(r >= 0);
+			decomp.connections[r].push_back(conn);
+
+		}
+		else if(!molincore[a] && !molincore[b])
+		{
+			if(molreactants[a] != molreactants[b])
+			{
+				//do not support reactants that connect with one another, must go through core
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool Reaction::decompose(ROMOL_SPTR m, vector<Decomposition>& decomp)
+{
+	decomp.clear();
+
+	//need to extract appropraite core for each result
+	vector<MatchVectType> matchesHere;
+
+	//we need to match the full product pattern
+	SubstructMatch(*m, *product, matchesHere);
+
+	uniqueCoresOnly(matchesHere);
+
+	for (unsigned i = 0, n = matchesHere.size(); i < n; i++)
+	{
+		Decomposition d;
+		const MatchVectType &match = matchesHere[i];
+		if (decompFromMatch(m, match, d))
+		{
+			decomp.push_back(d);
+		}
+	}
+	return decomp.size() > 0;
 }
 
 //break up mol, return false on failure
