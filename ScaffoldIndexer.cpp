@@ -229,48 +229,55 @@ static RotationMatrices rotators;
 
 //always sort coordinates by mapnum
 //require that all atoms of the core have a mapnum
-//heavy atoms only
-void ScaffoldIndexer::createCanonicalCoords(const Conformer& core,
+//heavy atoms of the core only - full molecule is needed in case core has < 3 atoms
+void ScaffoldIndexer::createCanonicalCoords(const Conformer& c, const Reaction::Decomposition& decomp,
 		ECoords& coords, Orienter& orient) const
-		{
-	ROMol& mol = core.getOwningMol();
+{
+	ROMol& fullmol = c.getOwningMol();
 
 	vector<MapNumInfo> connecting;
 	vector<MapNumInfo> remaining;
-	for (ROMol::AtomIterator itr = mol.beginAtoms(), end = mol.endAtoms();
-			itr != end; ++itr)
+	for (unsigned i = 0, n = decomp.core.size(); i < n; i++)
 	{
-		Atom *a = *itr;
-		if (a->getAtomicNum() == 1)
-			continue;
+		int idx = decomp.core[i];
+		Atom *a = fullmol.getAtomWithIdx(idx);
 		assert(a->hasProp(ATOM_MAP_NUM));
+		assert(a->getAtomicNum() != 1);
 		int mapnum = 0;
 		a->getProp(ATOM_MAP_NUM, mapnum);
-		unsigned idx = a->getIdx();
-		if (connectingMapNums.count(idx) > 0)
+
+		if (connectingMapNums.count(mapnum) > 0)
 			connecting.push_back(MapNumInfo(idx, mapnum));
 		else
 			remaining.push_back(MapNumInfo(idx, mapnum));
 	}
 
+	//if there are fewer than 3 total atoms, add first atom in connections
+	if(connecting.size() + remaining.size() < 3)
+	{
+		assert(decomp.connections.size() > 0);
+		assert(decomp.connections[0].size() > 0);
+		const Reaction::Connection& c = decomp.connections[0][0];
+		remaining.push_back(MapNumInfo(c.reactantIndex, c.reactantMap));
+	}
+
 	sort(connecting.begin(), connecting.end());
 	sort(remaining.begin(), remaining.end());
 
-	//WARNING: it isn't clear the following is correct if there are only two atoms
-	coords = ECoords::Zero(mol.getNumAtoms(), 3);
+	coords = ECoords::Zero(connecting.size() + remaining.size(), 3);
 
 	//connecting always go first
 	unsigned nc = connecting.size();
 	for (unsigned i = 0; i < nc; i++)
 	{
-		RDGeom::Point3D pt = core.getAtomPos(connecting[i].idx);
+		RDGeom::Point3D pt = c.getAtomPos(connecting[i].idx);
 		coords(i, 0) = pt.x;
 		coords(i, 1) = pt.y;
 		coords(i, 2) = pt.z;
 	}
 	for (unsigned i = 0, n = remaining.size(); i < n; i++)
 	{
-		RDGeom::Point3D pt = core.getAtomPos(remaining[i].idx);
+		RDGeom::Point3D pt = c.getAtomPos(remaining[i].idx);
 		coords(i + nc, 0) = pt.x;
 		coords(i + nc, 1) = pt.y;
 		coords(i + nc, 2) = pt.z;
@@ -393,9 +400,8 @@ void ScaffoldIndexer::addRotation(unsigned s, const ECoords& coords, Orienter& o
 }
 
 
-//add a new scaffold conformation as represented by coords, will
-//only create a new cluster if necessary, returns the cluster index
-unsigned ScaffoldIndexer::addScaffold(const Conformer& core, Orienter& orient)
+//add a new (unique) scaffold conformation
+unsigned ScaffoldIndexer::addScaffold(const Conformer& c, const Reaction::Decomposition& decomp, Orienter& orient)
 {
 	vector<unsigned> idx;
 	ECoords coords;

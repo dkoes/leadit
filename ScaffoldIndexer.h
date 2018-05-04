@@ -48,7 +48,7 @@ class ScaffoldIndexer
 
 	//put coordinates of atom into canonical form, sorted by mapping id
 	//and with connecting atoms first
-	void createCanonicalCoords(const Conformer& core, ECoords& coords, Orienter& orient) const;
+	void createCanonicalCoords(const Conformer& c, const Reaction::Decomposition& decomp, ECoords& coords, Orienter& orient) const;
 
 	static EMatrix3 computeRotation(const ECoords& ref, const ECoords& fit);
 
@@ -75,10 +75,10 @@ public:
 	//compute the optimal rotation between cluster s and coords and add it to orient
 	void addRotation(unsigned s, const ECoords& coords, Orienter& orient);
 
-	//add a new scaffold conformation as represented by coords, will
+	//add a new scaffold conformation described by the decomposition of m, will
 	//only create a new cluster if necessary, returns the cluster index
 	//returns the orienter needed to align molecule to chosen scaffold
-	unsigned addScaffold(const Conformer& core, Orienter& orient);
+	unsigned addScaffold(const Conformer& c, const Reaction::Decomposition& decomp, Orienter& orient);
 
 
 	unsigned size() const { return clusters.size(); }

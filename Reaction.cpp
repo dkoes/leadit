@@ -292,6 +292,7 @@ void Reaction::uniqueCoresOnly(vector<MatchVectType>& matches)
 	swap(matches,newmatches);
 }
 
+
 //use match to break m into pieces
 bool Reaction::decompFromMatch(ROMOL_SPTR m, const MatchVectType &match,
 		Decomposition& decomp)
@@ -380,6 +381,12 @@ bool Reaction::decompFromMatch(ROMOL_SPTR m, const MatchVectType &match,
 		}
 	}
 
+	//canonicalize order of connections
+	for(unsigned i = 0, n = decomp.connections.size(); i < n; i++)
+	{
+		sort(decomp.connections[i].begin(), decomp.connections[i].end());
+	}
+
 	return true;
 }
 
@@ -407,6 +414,17 @@ bool Reaction::decompose(ROMOL_SPTR m, vector<Decomposition>& decomp)
 	return decomp.size() > 0;
 }
 
+//return sub-mol of m consisting of atoms specified in atomindices
+//maintains atom mapping
+ROMOL_SPTR Reaction::extractMol(ROMOL_SPTR m, const vector<int>& atomindices)
+{
+	std::map<int, int> mapping;
+	ROMOL_SPTR ret = ROMOL_SPTR(
+			Subgraphs::atomsToSubmol(*m, atomindices, mapping));
+	copyMapNums(*m, *ret, mapping);
+	return ret;
+}
+
 //break up mol, return false on failure
 //there may be multiple possible results
 //map nums are set in results
@@ -414,117 +432,27 @@ bool Reaction::decompose(ROMOL_SPTR m, vector<Decomposition>& decomp)
 bool Reaction::decompose(ROMOL_SPTR m, vector<MOL_SPTR_VECT>& pieces,
 		vector<ROMOL_SPTR>& core)
 {
-	core.clear();
-	pieces.clear();
 
-	//need to extract appropraite core for each result
-	vector<MatchVectType> matchesHere;
-
-	//we need to match the full product pattern
-	SubstructMatch(*m, *product, matchesHere);
-
-	uniqueCoresOnly(matchesHere);
-
-	for (unsigned i = 0, n = matchesHere.size(); i < n; i++)
+	vector<Decomposition> decomp;
+	if(!decompose(m, decomp))
 	{
-		const MatchVectType &match = matchesHere[i];
-		vector<int> molcoreAtoms;
-		vector<int> molreactants(m->getNumAtoms(), -2);
-		vector<bool> molincore(m->getNumAtoms(), false);
-		copyMapNums(*product, *m, match);
-		//each match is a pair (query, mol) where query is our product
-		for (unsigned j = 0, num = match.size(); j < num; j++)
-		{
-			unsigned prodatom = match[j].first;
-			unsigned molatom = match[j].second;
-			if (coreScaffoldSet.count(prodatom))
-			{
-				molincore[molatom] = true;
-				molcoreAtoms.push_back(molatom);
-			}
-			molreactants[molatom] = productReactants[prodatom];
+		return false;
+	}
 
-		}
-
-		//for each reactant, need to identify the part of m that came from that
-		//reactant but that isn't part of the core scaffold
-		vector< vector<int> > reactAtoms(reactants.size());
-		for (ROMol::AtomIterator itr = m->beginAtoms(), end = m->endAtoms();
-				itr != end; ++itr)
-		{
-			Atom *mola = *itr;
-			unsigned idx = mola->getIdx();
-
-			if(!molincore[idx])
-			{
-				int r = getMolReact(m, idx, molreactants, molincore);
-				assert(r >= 0);
-				assert(r < (int)reactAtoms.size());
-				if(mola->getAtomicNum() != 1) //ignore hydrogens
-					reactAtoms[r].push_back(idx);
-			}
-
-		}
-
-		//each atom of mol is now labeled with what reactant it belongs to, although
-		//some core atoms may still be unlabeled
-		//need to identify the bonds between non-core and core
-		vector< vector< pair<unsigned,unsigned> > > molcorebonds; //indexed first by reactant, pair goes from core to noncore
-		molcorebonds.resize(reactants.size());
-		for (ROMol::BondIterator itr = m->beginBonds(), end = m->endBonds();
-				itr != end; ++itr)
-		{
-			Bond *bond = *itr;
-			unsigned a = bond->getBeginAtomIdx();
-			unsigned b = bond->getEndAtomIdx();
-
-			if(molincore[a] && !molincore[b])
-			{
-				int r = molreactants[b];
-				assert(r >= 0);
-				molcorebonds[r].push_back(make_pair(a,b));
-
-			}
-			else if(!molincore[a] && molincore[b])
-			{
-				int r = molreactants[a];
-				assert(r >= 0);
-				molcorebonds[r].push_back(make_pair(b,a));
-			}
-		}
-
+	for(unsigned i = 0, n = decomp.size(); i < n; i++)
+	{
+		const Decomposition& d = decomp[i];
 
 		//extract reactants
 		MOL_SPTR_VECT reacts;
-		for(unsigned r = 0, nr = reactAtoms.size(); r < nr; r++)
+		for(unsigned r = 0, nr = d.pieces.size(); r < nr; r++)
 		{
-			std::map<int, int> mapping;
-			ROMOL_SPTR rreact = ROMOL_SPTR(
-					Subgraphs::atomsToSubmol(*m, reactAtoms[r], mapping));
-
-			copyMapNums(*m, *rreact, mapping);
-			reacts.push_back(rreact);
+			reacts.push_back(extractMol(m, d.pieces[r]));
 		}
-
 		pieces.push_back(reacts);
 
 		//extract core
-		std::map<int, int> mapping;
-		ROMOL_SPTR thiscore = ROMOL_SPTR(
-				Subgraphs::atomsToSubmol(*m, molcoreAtoms, mapping));
-		copyMapNums(*m, *thiscore, mapping);
-
-		//store indices of connecting atoms, this order should match that of the reactant order
-		for(unsigned r = 0, nr = molcorebonds.size(); r < nr; r++)
-		{
-			for(unsigned b = 0, nb = molcorebonds[r].size(); b < nb; b++)
-			{
-				unsigned molcoreatom = molcorebonds[r][b].first;
-				assert(mapping.count(molcoreatom));
-			}
-		}
-
-		core.push_back(thiscore);
+		core.push_back(extractMol(m, d.core));
 	}
 	return true;
 }

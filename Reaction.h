@@ -31,37 +31,42 @@ using namespace RDKit;
 
 class Reaction
 {
-public: //types
+public:
+	//types
 	typedef shared_ptr<ChemicalReaction> ChemRxnPtr;
-  struct Connection
-  {
-    //record information on the junction between fragments
-    int coreIndex;
-    int reactantIndex; //indices are from the molecule provided to decompose
-    int coreMap; // mappings from reaction
-    int reactantMap;
-    Bond::BondType order;
+	struct Connection
+	{
+		//record information on the junction between fragments
+		int coreIndex;
+		int reactantIndex; //indices are from the molecule provided to decompose
+		int coreMap; // mappings from reaction
+		int reactantMap;
+		Bond::BondType order;
 
-    Connection(): coreIndex(-1), reactantIndex(-1), coreMap(-1), reactantMap(-1), order(Bond::UNSPECIFIED) {}
+		Connection() :
+				coreIndex(-1), reactantIndex(-1), coreMap(-1), reactantMap(-1), order(Bond::UNSPECIFIED)
+		{
+		}
 
-    //so we can cannonicalize ordering of connections
-    bool operator<(const Connection& rhs) const
-    {
-      //unsigned casts put negative numbers last
-      if(coreMap == rhs.coreMap)
-        return (unsigned)reactantMap < (unsigned)rhs.reactantMap;
-      else
-        return (unsigned)coreMap < (unsigned)rhs.coreMap;
-    }
-  };
+		//so we can cannonicalize ordering of connections
+		bool operator<(const Connection& rhs) const
+				{
+			//unsigned casts put negative numbers last
+			if (coreMap == rhs.coreMap)
+				return (unsigned) reactantMap < (unsigned) rhs.reactantMap;
+			else
+				return (unsigned) coreMap < (unsigned) rhs.coreMap;
+		}
 
-  struct Decomposition
-  {
-    //store information for a single fragmentation
-    vector<int> core; //atom indices of core
-    vector< vector<int> > pieces; //of remaining fragments, indexed by reactant index
-    vector< vector<Connection> > connections; //connections from core to fragments, indexed by reactant index, should be sorted
-  };
+	};
+
+	struct Decomposition
+	{
+		//store information for a single fragmentation
+		vector<int> core; //atom indices of core
+		vector<vector<int> > pieces; //of remaining fragments, indexed by reactant index
+		vector<vector<Connection> > connections; //connections from core to fragments, indexed by reactant index, should be sorted
+	};
 
 private:
 	ChemRxnPtr reverseRxn; //reaction
@@ -111,7 +116,10 @@ public:
 		return connectingMapNums;
 	}
 
-	unsigned numPieces() const { return reactants.size(); }
+	unsigned numPieces() const
+	{
+		return reactants.size();
+	}
 
 	//use the reaction to break up the passed mol into its starting reactants and core scaffold
 	//also compute the indices of the connecting atoms in each reactant and the core
@@ -122,7 +130,10 @@ public:
 	//identify the decomposition of molecule m by this reaction using its
 	//indices, without extracting submols.  Return true if successful
 	//decomp length is number of matches
-  bool decompose(ROMOL_SPTR m, vector<Decomposition>& decomp);
+	bool decompose(ROMOL_SPTR m, vector<Decomposition>& decomp);
+
+	//return sub-mol of m consisting of atoms specified in atomindices
+	static ROMOL_SPTR extractMol(ROMOL_SPTR m, const vector<int>& atomindices);
 
 	friend ostream& operator<<(ostream &out, const Reaction &r); //for debugging
 

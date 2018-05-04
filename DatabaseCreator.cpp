@@ -140,8 +140,7 @@ void DatabaseCreator::dumpCounts(ostream& out) const
 }
 
 //add conformers in molfile, only adds data, does not generate indices
-void DatabaseCreator::add(const filesystem::path& molfile,
-		bool verbose /* = false */)
+void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = false */)
 {
 	//handle gzipped sdf
 	ifstream inmols(molfile.c_str());
@@ -153,8 +152,6 @@ void DatabaseCreator::add(const filesystem::path& molfile,
 	in.push(inmols);
 
 	MCForwardSDMolSupplier supplier(&in, false);
-	vector<MOL_SPTR_VECT> pieces;
-	vector<ROMOL_SPTR> core;
 
 	int cnt = 0;
 	while (!supplier.atEnd())
@@ -164,37 +161,43 @@ void DatabaseCreator::add(const filesystem::path& molfile,
 
 		//compute pharmacophore features of mol and annotate atoms with feature types
 		assignPharmacophoreAtomProperties(m);
-		if(!rxn.decompose(m, pieces, core))
+		vector<Reaction::Decomposition> decomps;
+		if(!rxn.decompose(m, decomps))
 		{
 		  std::cerr << "WARNING: Could not decompose " << RDKit::MolToSmiles(*m) << "\n";
 		  continue;
 		}
-		assert(pieces.size() == core.size());
 
 		//treat each match separately - highly similar confs will get weeded out anyway
-		for (unsigned i = 0, n = core.size(); i < n; i++)
+		for (unsigned i = 0, n = decomps.size(); i < n; i++)
 		{
-			ROMOL_SPTR coremol = core[i];
-			for (unsigned c = 0, nc = coremol->getNumConformers(); c < nc; c++)
+			const Reaction::Decomposition& d = decomps[i];
+			//extract the fragments
+			MOL_SPTR_VECT frags;
+			for (unsigned p = 0, np = d.pieces.size(); p < np; p++)
 			{
-				Conformer& conf = coremol->getConformer(c);
+				ROMOL_SPTR frag = Reaction::extractMol(m, d.pieces[p]);
+				frags.push_back(frag);
+			}
+
+			for (unsigned c = 0, nc = m->getNumConformers(); c < nc; c++)
+			{
+				Conformer& conf = m->getConformer(c);
 				//categorize the scaffold
 				Orienter orient;
-				unsigned sindex = scaffoldIndex.addScaffold(conf, orient);
+				unsigned sindex = scaffoldIndex.addScaffold(conf, d, orient);
 				//position conformer to be aligned to core scaffold
-				orient.reorient(conf.getPositions());
+				orient.reorient(conf.getPositions()); //this probably isn't necessary, fragments get reoriented themselves
 
 				//check for new scaffold
 				if (fragments.size() == sindex)
-					fragments.push_back(
-							vector<FragmentIndexer>(pieces[i].size(),
-									FragmentIndexer(
-											config.reactantRMSDcutoff)));
+					fragments.push_back(vector<FragmentIndexer>(d.pieces.size(),
+									FragmentIndexer(config.reactantRMSDcutoff)));
 				assert(sindex < fragments.size());
 				//each scaffold_reactantpos is a unique database
-				for (unsigned p = 0, np = pieces[i].size(); p < np; p++)
+				for (unsigned p = 0, np = d.pieces.size(); p < np; p++)
 				{
-					ROMOL_SPTR frag = pieces[i][p];
+					ROMOL_SPTR frag = frags[p];
 					assert(frag->getNumConformers() == nc);
 					Conformer& fragconf = frag->getConformer(c);
 					orient.reorient(fragconf.getPositions()); //align to match scaffold
