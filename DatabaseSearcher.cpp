@@ -110,6 +110,8 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 
 		//add rest of molecule to big (excluded region)
 		MolecularQueryObject big(origbig, *decomp.removePiece(m, reactant, false)); //don't include core
+		//don't want to include rest of molecule (including core) in inclusive shape
+		MolecularQueryObject smallex(*decomp.removePiece(m, reactant), small.getShrink(), small.getInvert());
 
 		//canonicalize coordinates and add translation to orientation
 		ECoords coords;
@@ -128,7 +130,11 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 			results.orienters.push_back(scaffoldorient);
 
 			//apply orientation to query structures
-			GSSTreeSearcher::ObjectTree miv = small.getObjectTree(scaffoldorient);
+			//remove rest of mol from small
+			GSSTreeSearcher::ObjectTree smallextree = smallex.getObjectTree(scaffoldorient);
+			smallextree->invert();
+			GSSTreeSearcher::ObjectTree inctree = small.getObjectTree(scaffoldorient);
+			GSSTreeSearcher::ObjectTree miv = QueryObject::getIntersection(inctree, smallextree);
 			GSSTreeSearcher::ObjectTree msv = big.getObjectTree(scaffoldorient);
 
 			//do search

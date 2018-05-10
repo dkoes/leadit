@@ -16,6 +16,12 @@
 using namespace RDKit;
 using namespace boost;
 
+GSSTreeSearcher::ObjectTree QueryObject::getIntersection(GSSTreeSearcher::ObjectTree a, GSSTreeSearcher::ObjectTree b)
+{
+	const MappableOctTree *itrees[2] = {a.get(), b.get()};
+	return GSSTreeSearcher::ObjectTree(MappableOctTree::createFromIntersection(2, itrees));
+}
+
 
 //apply orient to molecular coordinates of mol and then generate objecttree
 //leaves coordinates untouched
@@ -76,6 +82,6 @@ GSSTreeSearcher::ObjectTree MolecularQueryObject::getObjectTree(
 	if (invert) //treat as excluded vol
 		objTree->invert();
 
-	return shared_ptr<const MappableOctTree>(objTree, free);
+	return shared_ptr<MappableOctTree>(objTree, free);
 }
 

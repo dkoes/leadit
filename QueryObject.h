@@ -30,6 +30,9 @@ public:
 
 	//return search object after applying passed transformation
 	virtual GSSTreeSearcher::ObjectTree getObjectTree(const Orienter& orient) const = 0;
+
+	//return intersection
+	static GSSTreeSearcher::ObjectTree getIntersection(GSSTreeSearcher::ObjectTree a, GSSTreeSearcher::ObjectTree b);
 };
 
 
@@ -59,6 +62,8 @@ public:
 		return *this;
 	}
 
+	double getShrink() const { return shrink; }
+	bool getInvert() const { return invert; }
 	GSSTreeSearcher::ObjectTree getObjectTree(const Orienter& orient) const;
 
 };

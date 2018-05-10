@@ -22,7 +22,7 @@ static bool nofilter(const MappableOctTree* tree) { return true; } //default fil
 class GSSTreeSearcher
 {
 public:
-	typedef boost::shared_ptr<const MappableOctTree> ObjectTree;
+	typedef boost::shared_ptr<MappableOctTree> ObjectTree;
 	typedef bool (TreeFilter)(const MappableOctTree *tree);
 
 private:

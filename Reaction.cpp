@@ -356,6 +356,14 @@ bool Reaction::decompFromMatch(ROMOL_SPTR m, const MatchVectType &match,
 		}
 	}
 
+	//make sure there are atoms in every reactant
+	//this should catch not-fully-separated molecules
+	for(unsigned i = 0, n = decomp.pieces.size(); i < n; i++)
+	{
+		if(decomp.pieces[i].size() == 0)
+			return false;
+	}
+
 	//each atom of mol is now labeled with what reactant it belongs to, although
 	//some core atoms may still be unlabeled
 	//need to identify the connections between non-core and core

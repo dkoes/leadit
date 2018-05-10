@@ -9,6 +9,8 @@
 #include <eigen3/Eigen/Eigenvalues>
 #include <eigen3/Eigen/SVD>
 #include <RDGeneral/StreamOps.h>
+#include <rdkit/GraphMol/FileParsers/MolWriters.h>
+
 using namespace Eigen;
 using namespace boost;
 
@@ -99,7 +101,7 @@ void ScaffoldIndexer::write(ostream& out)
 	}
 }
 
-static void dumpXYZ(const ECoords& c, const char *name)
+inline void dumpXYZ(const ECoords& c, const char *name)
 {
 	cout << c.rows() << "\n";
 	cout << name << "\n";
@@ -422,6 +424,7 @@ unsigned ScaffoldIndexer::addScaffold(const Conformer& c, const Reaction::Decomp
 		//must create new scaffold
 		clusters.push_back(ScaffoldInfo());
 		ScaffoldInfo& info = clusters.back();
+
 		info.center = coords;
 		info.count++;
 		return clusters.size() - 1;
