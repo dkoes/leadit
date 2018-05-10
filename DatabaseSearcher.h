@@ -26,7 +26,6 @@ class DatabaseSearcher
 	ScaffoldIndexer scaffoldIndex;
 
 	vector<vector<vector<FragmentSearcher> > > fragments; //index first by scaffold position, then by reactant position, then by dir
-	vector<Orienter> orienters; //transformations needed to adjust fragments to input coordinate system
 	bool valid;
 
 public:
@@ -38,17 +37,38 @@ public:
 		unsigned reactantPos;
 		unsigned dir;
 		unsigned orientIndex;
+		unsigned dindex; //which decomposition
 		FragmentSearcher::Result fragRes;
 
 		Result() :
-				scaffoldPos(0), reactantPos(0), dir(0), orientIndex(0)
+				scaffoldPos(0), reactantPos(0), dir(0), orientIndex(0), dindex(0)
 		{
 		}
 
-		Result(unsigned s, unsigned r, unsigned d, unsigned o,
+		Result(unsigned s, unsigned r, unsigned d, unsigned o, unsigned di,
 				const FragmentSearcher::Result& fr) :
-				scaffoldPos(s), reactantPos(r), dir(d), orientIndex(o), fragRes(fr)
+				scaffoldPos(s), reactantPos(r), dir(d), orientIndex(o), dindex(di), fragRes(fr)
 		{
+		}
+	};
+
+	struct Results
+	{
+		ROMOL_SPTR refmol;
+		vector<Reaction::Decomposition> decomps;
+		vector<Result> results;
+		vector<Orienter> orienters; //transformations needed to adjust fragments to input coordinate system
+
+		void clear()
+		{
+			decomps.clear();
+			results.clear();
+			orienters.clear();
+		}
+
+		unsigned size() const
+		{
+			return results.size();
 		}
 	};
 
@@ -69,11 +89,11 @@ public:
 	}
 	unsigned long totalConformers() const;
 
-	void search(ROMOL_SPTR ref, unsigned reactant, const QueryObject& small,
-			const QueryObject& big, vector<Result>& results); //TODO pharma
+	void search(ROMOL_SPTR ref, unsigned reactant, const MolecularQueryObject& small,
+			const MolecularQueryObject& big, Results& results); //TODO pharma
 
-	//write result sdf to out
-	void writeSDF(const Result& res, ostream& out) const;
+	//write result sdf to out for result rindex
+	void writeSDF(const Results& results, unsigned rindex, ostream& out) const;
 
 };
 

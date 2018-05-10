@@ -17,6 +17,7 @@
 #include "Orienter.h"
 #include "shapedb/MemMapped.h"
 #include "DatabaseStrutures.h"
+#include "Reaction.h"
 
 using namespace std;
 
@@ -27,7 +28,8 @@ class FragmentSearcher
 	vector<DataIndex> indices; //keep these memory resident, gss trees index into here
 
 	MemMapped sminaData;
-	MemMapped molData;
+	MemMapped molData; //todo, remove?
+	MemMapped rdmolData;
 
 public:
 	//result of fragment search
@@ -51,8 +53,11 @@ public:
 
 	void search(GSSTreeSearcher::ObjectTree small, GSSTreeSearcher::ObjectTree big, vector< Result>& results); //TODO pharma
 
-	//write sdf at pos to out
-	void writeSDF(unsigned pos, const Orienter& orient, ostream& out) const;
+	//read out rdmol from indices[pos]
+	ROMOL_SPTR readRDMol(unsigned pos, vector<FragBondInfo>& fragbonds) const;
+
+	//write sdf at pos to out, this is replacing reactant whichr from fullmol according to decomp
+	void writeSDF(ROMOL_SPTR fullmol, const Reaction::Decomposition& decomp, unsigned whichr, unsigned pos, const Orienter& orient, ostream& out) const;
 
 };
 

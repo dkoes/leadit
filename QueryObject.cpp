@@ -16,6 +16,7 @@
 using namespace RDKit;
 using namespace boost;
 
+
 //apply orient to molecular coordinates of mol and then generate objecttree
 //leaves coordinates untouched
 GSSTreeSearcher::ObjectTree MolecularQueryObject::getObjectTree(

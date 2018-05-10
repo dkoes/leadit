@@ -134,9 +134,7 @@ void Reaction::findCoreAndReactants()
 				{
 					//cross reactants with heavy atoms
 					connecting.push_back(idx);
-					assert(a->hasProp(ATOM_MAP_NUM));
-					int mapnum = 0;
-					a->getProp(ATOM_MAP_NUM, mapnum);
+					int mapnum = getMapNum(a);
 					connectingMapNums.push_back(mapnum);
 					connectAtoms[r].push_back(product->getAtomWithIdx(u)); //core atoms
 					break;
@@ -247,7 +245,7 @@ static void copyMapNums(ROMol& src, ROMol& dest, const MatchVectType & mapping)
 }
 
 //return mapnum or -1 if not set
-static int getMapNum(const Atom* a)
+int Reaction::getMapNum(const Atom* a)
 {
 	if(a->hasProp(ATOM_MAP_NUM))
 	{
@@ -257,6 +255,28 @@ static int getMapNum(const Atom* a)
 	}
 	return -1;
 }
+
+
+//extract p and label connecting atoms
+ROMOL_SPTR Reaction::Decomposition::extractPiece(ROMOL_SPTR m, unsigned p, vector<FragBondInfo>& fragbonds) const
+{
+	std::map<int, int> mapping;
+	const vector<int> atomindices = pieces[p];
+	ROMOL_SPTR ret = ROMOL_SPTR(Subgraphs::atomsToSubmol(*m, atomindices, mapping));
+	copyMapNums(*m, *ret, mapping);
+
+	unordered_map<int,int> map(mapping.begin(),mapping.end());
+	//store connections with new indexing
+	for(unsigned i = 0, n = connections[p].size(); i < n; i++)
+	{
+		const Connection& conn = connections[p][i];
+		int orig = conn.reactantIndex;
+		assert(map.count(orig));
+		fragbonds.push_back(FragBondInfo(conn.order, map[orig], conn.coreMap));
+	}
+	return ret;
+}
+
 
 //reduce matches to only those that differ on the core scaffold
 void Reaction::uniqueCoresOnly(vector<MatchVectType>& matches)
@@ -424,6 +444,22 @@ ROMOL_SPTR Reaction::extractMol(ROMOL_SPTR m, const vector<int>& atomindices)
 	copyMapNums(*m, *ret, mapping);
 	return ret;
 }
+
+ROMOL_SPTR Reaction::Decomposition::removePiece(ROMOL_SPTR m, unsigned which, bool keepCore) const
+{
+	vector<int> goodatoms;
+	if(keepCore)
+		goodatoms = core;
+	for(unsigned i = 0, n = pieces.size(); i < n; i++)
+	{
+		if(i != which)
+		{
+			goodatoms.insert(goodatoms.end(), pieces[i].begin(), pieces[i].end());
+		}
+	}
+	return extractMol(m, goodatoms);
+}
+
 
 //break up mol, return false on failure
 //there may be multiple possible results

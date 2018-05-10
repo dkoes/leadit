@@ -22,6 +22,7 @@
 #include <GraphMol/SmilesParse/SmilesWrite.h>
 #include <GraphMol/ChemReactions/Reaction.h>
 #include <GraphMol/ChemReactions/ReactionParser.h>
+#include "DatabaseStrutures.h"
 
 using namespace std;
 using namespace boost;
@@ -66,6 +67,12 @@ public:
 		vector<int> core; //atom indices of core
 		vector<vector<int> > pieces; //of remaining fragments, indexed by reactant index
 		vector<vector<Connection> > connections; //connections from core to fragments, indexed by reactant index, should be sorted
+
+		//return the fragment p as mol, connecting atoms are labeled with the core mapnums they connect to
+		//fragbonds has bonds to piece with new atom indexing for fragment
+		ROMOL_SPTR extractPiece(ROMOL_SPTR m, unsigned p, vector<FragBondInfo>& fragbonds) const;
+		//return sub-mol of m without piece which of decomp
+		ROMOL_SPTR removePiece(ROMOL_SPTR m, unsigned which, bool keepCore=true) const;
 	};
 
 private:
@@ -134,6 +141,10 @@ public:
 
 	//return sub-mol of m consisting of atoms specified in atomindices
 	static ROMOL_SPTR extractMol(ROMOL_SPTR m, const vector<int>& atomindices);
+
+	//return mapnum of an atom
+	static int getMapNum(const Atom* a);
+	static int getConnectingMapNum(const Atom* a);
 
 	friend ostream& operator<<(ostream &out, const Reaction &r); //for debugging
 

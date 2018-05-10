@@ -47,9 +47,9 @@ public:
 
 	//add a molecule to the result set; written in pmolf format at data
 	//support a single sddata entry for the goodness of the result
-	void add(const char *data, double score)
+	void add(const char *data, unsigned position, double score)
 	{
-		PMol *mol = (PMol*)reader.readPMol(data);
+		PMol *mol = (PMol*)reader.readPMol(data+position);
 
 		if(uniqueify)
 		{

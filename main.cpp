@@ -36,8 +36,11 @@
 #include "DatabaseCreator.h"
 #include "DatabaseSearcher.h"
 #include <GraphMol/FileParsers/MolWriters.h>
-
+#include <boost/algorithm/string.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 using namespace std;
+using namespace boost;
 
 enum CommandEnum
 {
@@ -400,17 +403,29 @@ static void handle_search()
 	}
 
 
-	vector<DatabaseSearcher::Result> results;
+	DatabaseSearcher::Results results;
 	searcher.search(refmol, ReactantPos, small, big, results);
 
 	cout << results.size() << " hits\n";
 
 	if(outputFile.size() > 0)
 	{
-		ofstream out(outputFile.c_str());
-		BOOST_FOREACH(DatabaseSearcher::Result& r, results)
+		ofstream outmols(outputFile.c_str());
+		iostreams::filtering_stream<iostreams::output> out;
+		if (algorithm::ends_with(outputFile, ".sdf.gz"))
 		{
-			searcher.writeSDF(r, out);
+			out.push(iostreams::gzip_compressor());
+		}
+		else if(!algorithm::ends_with(outputFile, ".sdf"))
+		{
+			cerr << "Sorry, only sdf(.gz) formatted output is supported.\n";
+			exit(1);
+		}
+		out.push(outmols);
+
+		for(unsigned i = 0, n = results.size(); i < n; i++)
+		{
+			searcher.writeSDF(results, i, out);
 		}
 	}
 }

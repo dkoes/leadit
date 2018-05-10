@@ -24,6 +24,7 @@
 #include "Orienter.h"
 #include "MolMatcher.h"
 #include "DatabaseStrutures.h"
+#include "Reaction.h"
 
 using namespace std;
 
@@ -34,8 +35,8 @@ class FragmentIndexer
 		MolMatcher matcher;
 		RDKit::ROMOL_SPTR frag; //connection table, etc
 		vector<ECoords> coordinates; //store coordinates separately
-
-		void initialize(const RDKit::Conformer& conf);
+		vector<FragBondInfo> fragbonds;
+		void initialize(const RDKit::Conformer& conf, const vector<FragBondInfo>& fragbonds);
 		//add conformer if it is more than cutoff away from current set
 		void add(const RDKit::Conformer& conf, double cutoffSq);
 
@@ -60,6 +61,7 @@ class FragmentIndexer
 		vector<DataIndex> indices;
 		ofstream *sminaData;
 		ofstream *molData;
+		ofstream *rdmolData;
 		ofstream *pharmaData;
 
 		void readNext();
@@ -76,6 +78,7 @@ class FragmentIndexer
 			if(sminaData) delete sminaData;
 			if(molData) delete molData;
 			if(pharmaData) delete pharmaData;
+			if(rdmolData) delete rdmolData;
 			sminaData = molData = pharmaData = NULL;
 		}
 
@@ -118,7 +121,7 @@ public:
 	void write(const vector<boost::filesystem::path>& outdirs);
 
 	//adds fragment to index if isn't within rmsdCufoff of previously added fragment
-	void add(const RDKit::Conformer& conf);
+	void add(const RDKit::Conformer& conf, const vector<FragBondInfo>& fragbonds);
 
 	unsigned numFragments() const { return fragments.size(); }
 	unsigned numFragmentConformers() const;

@@ -11,6 +11,7 @@
 #include "shapedb/GSSTreeSearcher.h"
 #include <GraphMol/RWMol.h>
 #include "Orienter.h"
+#include "Reaction.h"
 
 /* A query object holds some sort of volumizable data that can be reoriented.
  * Basically, I don't like the idea of apply rigid body transformations directly
@@ -42,6 +43,12 @@ public:
 	MolecularQueryObject(bool i): invert(i) {}
 	MolecularQueryObject(const MolecularQueryObject& rhs): mol(rhs.mol), shrink(rhs.shrink), invert(rhs.invert) {}
 	MolecularQueryObject(const RDKit::ROMol& m, double s, bool i): mol(m), shrink(s), invert(i) {}
+	//create new object with m added
+	MolecularQueryObject(const MolecularQueryObject& rhs, const RDKit::ROMol& m):
+		mol(rhs.mol), shrink(rhs.shrink), invert(rhs.invert)
+	{
+		mol.insertMol(m);
+	}
 	~MolecularQueryObject() {}
 
 	MolecularQueryObject& operator=(const MolecularQueryObject& rhs)

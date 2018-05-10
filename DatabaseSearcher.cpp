@@ -91,27 +91,29 @@ unsigned long DatabaseSearcher::totalConformers() const
 //system as the other query objects) and the desired reactant index to replace,
 //identify the relevent scaffolds and search for matches that fit between small and big
 void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
-		const QueryObject& small, const QueryObject& big,
-		vector<Result>& results)
+		const MolecularQueryObject& small, const MolecularQueryObject& origbig,
+		Results& results)
 {
 	results.clear();
 	//analyze reference compound, does it match?
-	vector<MOL_SPTR_VECT> pieces;
-	vector<ROMOL_SPTR> core;
 	ROMOL_SPTR m(MolOps::addHs(*ref)); //for proper match must have hydrogens
-	rxn.decompose(m, pieces, core);
-	orienters.clear();
+	results.refmol = m;
+
+	rxn.decompose(m, results.decomps);
+	const Conformer& conf = m->getConformer();
 
 	//for each core conformer
-	for (unsigned c = 0, nc = core.size(); c < nc; c++)
+	for (unsigned c = 0, nc = results.decomps.size(); c < nc; c++)
 	{
 		Orienter coreorient;
+		const Reaction::Decomposition& decomp = results.decomps[c];
+
+		//add rest of molecule to big (excluded region)
+		MolecularQueryObject big(origbig, *decomp.removePiece(m, reactant, false)); //don't include core
 
 		//canonicalize coordinates and add translation to orientation
 		ECoords coords;
-		const Conformer& coreconf = core[c]->getConformer();
-
-		scaffoldIndex.createCanonicalCoords(coreconf,coords, coreorient);
+		scaffoldIndex.createCanonicalCoords(conf, decomp, coords, coreorient);
 
 		//find any matching scaffolds
 		vector<unsigned> scaffolds;
@@ -123,18 +125,7 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 			//compute necessary rotation for this scaffold
 			Orienter scaffoldorient(coreorient);
 			scaffoldIndex.addRotation(s, coords, scaffoldorient);
-
-			orienters.push_back(scaffoldorient);
-
-	    ofstream str("pieces.sdf");
-	    RDKit::SDWriter writer(&str);
-	    scaffoldorient.reorient(core[c]->getConformer().getPositions());
-	    writer.write(*core[c]);
-	    BOOST_FOREACH(ROMOL_SPTR p, pieces[c])
-	    {
-	      scaffoldorient.reorient(p->getConformer().getPositions());
-	      writer.write(*p);
-	    }
+			results.orienters.push_back(scaffoldorient);
 
 			//apply orientation to query structures
 			GSSTreeSearcher::ObjectTree miv = small.getObjectTree(scaffoldorient);
@@ -144,25 +135,27 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 			//TODO: multi thread, although threads will need to be hoisted
 			assert(reactant < fragments[s].size());
 			vector<FragmentSearcher::Result> fragResults; //will store fragment indices
-			for(unsigned d = 0, nd = fragments[s][reactant].size(); d < nd; d++) //over directories
+			for (unsigned d = 0, nd = fragments[s][reactant].size(); d < nd; d++) //over directories
 			{
 				FragmentSearcher& searcher = fragments[s][reactant][d];
 				searcher.search(miv, msv, fragResults);
 				//expand results to fully specify positions
 				BOOST_FOREACH(FragmentSearcher::Result& fr, fragResults)
 				{
-				  results.push_back(Result(s,reactant,d,orienters.size()-1,fr));
+					results.results.push_back(Result(s, reactant, d, results.orienters.size() - 1, c, fr));
 				}
 			}
 		}
 	}
 }
 
-void DatabaseSearcher::writeSDF(const Result& res, ostream& out) const
+void DatabaseSearcher::writeSDF(const Results& results, unsigned rindex, ostream& out) const
 {
+	const Result& res = results.results[rindex];
 	const FragmentSearcher& searcher = fragments[res.scaffoldPos][res.reactantPos][res.dir];
-	const Orienter& orient = orienters[res.orientIndex];
-	searcher.writeSDF(res.fragRes.pos, orient, out);
+	assert(res.orientIndex < results.orienters.size());
+	const Orienter& orient = results.orienters[res.orientIndex];
+	searcher.writeSDF(results.refmol, results.decomps[res.dindex], res.reactantPos, res.fragRes.pos, orient, out);
 }
 
 

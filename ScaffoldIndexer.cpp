@@ -44,14 +44,16 @@ void ScaffoldIndexer::read(istream& in)
 	clusters.resize(n);
 	for(unsigned i = 0; i < n; i++)
 	{
-		clusters[i].read(in, numAtoms);
+		clusters[i].read(in);
 	}
 }
 
 //read in scaffold info, N is the number of atoms in a core
-void ScaffoldIndexer::ScaffoldInfo::read(istream& in, unsigned int N)
+void ScaffoldIndexer::ScaffoldInfo::read(istream& in)
 {
+	unsigned N = 0;
 	streamRead(in, count);
+	streamRead(in, N);
 	center.resize(N, 3);
 	for(unsigned i = 0, n = center.size(); i < n; i++)
 	{
@@ -59,13 +61,14 @@ void ScaffoldIndexer::ScaffoldInfo::read(istream& in, unsigned int N)
 		streamRead(in, val);
 		center(i) = val;
 	}
-
-
 }
 
 void ScaffoldIndexer::ScaffoldInfo::write(ostream& out)
 {
 	streamWrite(out, count);
+	unsigned N = center.rows();
+	streamWrite(out, N);
+	assert(center.size() % 3 == 0);
 	for(unsigned i = 0, n = center.size(); i < n; i++)
 	{
 		float val = center(i);
@@ -92,7 +95,6 @@ void ScaffoldIndexer::write(ostream& out)
 	streamWrite(out, n);
 	for(unsigned i = 0; i < n; i++)
 	{
-		assert(clusters[i].center.rows() == numAtoms);
 		clusters[i].write(out);
 	}
 }
@@ -138,7 +140,7 @@ bool ScaffoldIndexer::calcRMSDSquares(const ECoords& a, const ECoords& b,
 	double totalSum = 0;
 
 	assert(a.rows() == b.rows());
-	assert(a.rows() == numAtoms);
+	unsigned na = a.rows(); //may be larger than numAtoms if numAtoms < 3
 	unsigned nc = connectingMapNums.size();
 
 	ECoords newb = b * computeRotation(a, b);
@@ -150,13 +152,13 @@ bool ScaffoldIndexer::calcRMSDSquares(const ECoords& a, const ECoords& b,
 		connectSum += (a.row(i) - newb.row(i)).squaredNorm();
 	}
 	totalSum = connectSum;
-	for (/* i okay */; i < numAtoms; i++)
+	for (/* i okay */; i < na; i++)
 	{
 		totalSum += (a.row(i) - newb.row(i)).squaredNorm();
 	}
 
 	connectRMSDSq = connectSum / nc;
-	totalRMSDSq = totalSum / numAtoms;
+	totalRMSDSq = totalSum / na;
 	return (connectRMSDSq < connectCutoffSq) && (totalRMSDSq < rmsdCutoffSq);
 }
 
@@ -176,12 +178,13 @@ struct MapNumInfo
 	}
 
 	bool operator<(const MapNumInfo& rhs) const
-			{
+	{
+		if(mapnum == rhs.mapnum) return idx < rhs.idx;
 		return mapnum < rhs.mapnum;
 	}
 
 	bool operator==(const MapNumInfo& rhs) const
-			{
+	{
 		return mapnum == rhs.mapnum;
 	}
 };
@@ -241,10 +244,9 @@ void ScaffoldIndexer::createCanonicalCoords(const Conformer& c, const Reaction::
 	{
 		int idx = decomp.core[i];
 		Atom *a = fullmol.getAtomWithIdx(idx);
-		assert(a->hasProp(ATOM_MAP_NUM));
+		int mapnum = Reaction::getMapNum(a);
+		assert(mapnum >= 0);
 		assert(a->getAtomicNum() != 1);
-		int mapnum = 0;
-		a->getProp(ATOM_MAP_NUM, mapnum);
 
 		if (connectingMapNums.count(mapnum) > 0)
 			connecting.push_back(MapNumInfo(idx, mapnum));
@@ -259,7 +261,16 @@ void ScaffoldIndexer::createCanonicalCoords(const Conformer& c, const Reaction::
 		assert(decomp.connections[0].size() > 0);
 		const Reaction::Connection& c = decomp.connections[0][0];
 		remaining.push_back(MapNumInfo(c.reactantIndex, c.reactantMap));
+
+		//doubt we'll get here, but just incase core has < 2 atoms try second reactant
+		if(connecting.size() + remaining.size() < 3  && decomp.connections.size() > 1)
+		{
+			assert(decomp.connections[1].size() > 0);
+			const Reaction::Connection& c = decomp.connections[1][0];
+			remaining.push_back(MapNumInfo(c.reactantIndex, c.reactantMap));
+		}
 	}
+	assert(connecting.size() + remaining.size() >= 3);
 
 	sort(connecting.begin(), connecting.end());
 	sort(remaining.begin(), remaining.end());
@@ -405,7 +416,7 @@ unsigned ScaffoldIndexer::addScaffold(const Conformer& c, const Reaction::Decomp
 {
 	vector<unsigned> idx;
 	ECoords coords;
-	createCanonicalCoords(core, coords, orient);
+	createCanonicalCoords(c, decomp, coords, orient);
 	if (!findBest(coords, idx))
 	{
 		//must create new scaffold
@@ -420,6 +431,7 @@ unsigned ScaffoldIndexer::addScaffold(const Conformer& c, const Reaction::Decomp
 		assert(idx.size() > 0);
 		unsigned index = idx[0];
 		clusters[index].count++;
+		//not clear this is necessary - final refinement of overlay
 		addRotation(index, coords, orient);
 		return index;
 	}

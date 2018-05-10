@@ -32,12 +32,12 @@ class ScaffoldIndexer
 
 	struct ScaffoldInfo
 	{
-		ECoords center;
+		ECoords center; //this may include additional non-core atoms if core has < 3 atoms
 		unsigned count; //how many we've seen like this
 
 		ScaffoldInfo(): count(0) {}
 
-		void read(istream& in, unsigned N);
+		void read(istream& in);
 		void write(ostream& out);
 	};
 

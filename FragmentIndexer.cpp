@@ -11,6 +11,7 @@
 #include <boost/graph/isomorphism.hpp>
 #include <GraphMol/FileParsers/MolWriters.h>
 #include <MolMatcher.h>
+#include "Reaction.h"
 #include <RDGeneral/StreamOps.h>
 #include <GraphMol/MolPickler.h>
 #include "shapedb/GSSTreeCreator.h"
@@ -25,7 +26,7 @@ using namespace boost;
 
 #define ATOM_MAP_NUM "molAtomMapNumber"
 
-void FragmentIndexer::Fragment::initialize(const RDKit::Conformer& conf)
+void FragmentIndexer::Fragment::initialize(const RDKit::Conformer& conf, const vector<FragBondInfo>& fbonds)
 {
 	//copy into a mol without conformers
 	ROMol& mol = conf.getOwningMol();
@@ -33,19 +34,20 @@ void FragmentIndexer::Fragment::initialize(const RDKit::Conformer& conf)
 	frag = ROMOL_SPTR(new ROMol(mol, true)); //quick copy - no conformers
 
 	matcher.initialize(frag, conf.getPositions());
-	//but need to copy properties "molAtomMapNumber"
+	//but need to copy properties "molAtomMapNumber" and connecting
 	for (ROMol::AtomIterator itr = mol.beginAtoms(), end = mol.endAtoms();
 			itr != end; ++itr)
 	{
 		Atom *a = *itr;
-		if(a->hasProp(ATOM_MAP_NUM))
+		Atom *dsta = frag->getAtomWithIdx(a->getIdx());
+		int mapnum = Reaction::getMapNum(a);
+		if(mapnum >= 0)
 		{
-			int mapnum = 0;
-			a->getProp(ATOM_MAP_NUM, mapnum);
-			frag->getAtomWithIdx(a->getIdx())->setProp(ATOM_MAP_NUM, mapnum);
+			dsta->setProp(ATOM_MAP_NUM, mapnum);
 		}
 	}
 
+	fragbonds = fbonds;
 	//convert coordinates
 	const RDGeom::POINT3D_VECT& coords = conf.getPositions();
 	assert(coords.size() == frag->getNumAtoms());
@@ -153,7 +155,7 @@ void FragmentIndexer::Fragment::add(const Conformer& conf, double cutoffSq)
 	coordinates.push_back(confcoords);
 }
 
-void FragmentIndexer::add(const Conformer& conf)
+void FragmentIndexer::add(const Conformer& conf,  const vector<FragBondInfo>& fragbonds)
 {
 	ROMol& mol = conf.getOwningMol();
 	//smiles are canonical and so can be used for indexing
@@ -169,7 +171,7 @@ void FragmentIndexer::add(const Conformer& conf)
 	{
 		unsigned pos = fragments.size();
 		fragments.push_back(Fragment());
-		fragments.back().initialize(conf);
+		fragments.back().initialize(conf, fragbonds);
 		fragmentPos[smile] = pos;
 	}
 }
@@ -305,6 +307,8 @@ FragmentIndexer::Outputter::Outputter(vector<Fragment> *frags, const boost::file
 		sminaData = new ofstream(sd.string().c_str());
 		filesystem::path md = d / "molData";
 		molData = new ofstream(md.string().c_str());
+		filesystem::path rd = d / "rdmolData";
+		rdmolData = new ofstream(rd.string().c_str());
 		filesystem::path pd = d / "pharmaData";
 		pharmaData = new ofstream(pd.string().c_str());
 		setCurrent();
@@ -380,6 +384,21 @@ void FragmentIndexer::Outputter::Outputter::setCurrent()
 	PMolCreator pmol(*mol, true);
 	pmol.writeBinary(*molData);
 
+	//rdmol format, somewhat redundant to fragData? but in different order and with more properties
+	//moldata is self contained, so we replicate everything needed to create the mol
+	//could be more space efficient if we separated coordinates and the molecule
+	idx.rdmolloc = rdmolData->tellp();
+	MolPickler::pickleMol(*mol,*rdmolData);
+	//connection tables
+	unsigned char n = frag.fragbonds.size();
+	streamWrite(*rdmolData, n);
+	for(unsigned i = 0; i < n; i++)
+	{
+		streamWrite(*rdmolData, frag.fragbonds[i].order);
+		streamWrite(*rdmolData, frag.fragbonds[i].idx);
+		streamWrite(*rdmolData, frag.fragbonds[i].cmap);
+	}
+
 	indices.push_back(idx);
 }
 
@@ -405,7 +424,15 @@ void FragmentIndexer::Fragment::read(istream& in)
 
 	unsigned n = 0;
 	streamRead(in, n);
+	fragbonds.resize(n);
+	for(unsigned i = 0; i < n; i++)
+	{
+		streamRead(in,fragbonds[i].order);
+		streamRead(in,fragbonds[i].idx);
+		streamRead(in,fragbonds[i].cmap);
+	}
 
+	streamRead(in, n);
 	coordinates.resize(n);
 	unsigned numatoms = frag->getNumAtoms();
 	unsigned m = numatoms*3;
@@ -426,7 +453,16 @@ void FragmentIndexer::Fragment::write(ostream& out) const
 {
 	matcher.write(out);
 	MolPickler::pickleMol(*frag,out);
-	unsigned n = coordinates.size();
+	unsigned n = fragbonds.size();
+	streamWrite(out, n);
+	for(unsigned i = 0; i < n; i++)
+	{
+		streamWrite(out,fragbonds[i].order);
+		streamWrite(out,fragbonds[i].idx);
+		streamWrite(out,fragbonds[i].cmap);
+	}
+
+	n = coordinates.size();
 	streamWrite(out, n);
 	for(unsigned i = 0, n = coordinates.size(); i < n; i++)
 	{

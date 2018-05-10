@@ -174,9 +174,11 @@ void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = fal
 			const Reaction::Decomposition& d = decomps[i];
 			//extract the fragments
 			MOL_SPTR_VECT frags;
+			vector< vector<FragBondInfo> > fragbonds;
+			fragbonds.resize(d.pieces.size());
 			for (unsigned p = 0, np = d.pieces.size(); p < np; p++)
 			{
-				ROMOL_SPTR frag = Reaction::extractMol(m, d.pieces[p]);
+				ROMOL_SPTR frag = d.extractPiece(m, p, fragbonds[p]); //labels connecting atoms
 				frags.push_back(frag);
 			}
 
@@ -202,7 +204,7 @@ void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = fal
 					Conformer& fragconf = frag->getConformer(c);
 					orient.reorient(fragconf.getPositions()); //align to match scaffold
 
-					fragments[sindex][p].add(fragconf);
+					fragments[sindex][p].add(fragconf, fragbonds[p]);
 				}
 
 				if (verbose)
