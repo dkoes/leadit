@@ -351,7 +351,7 @@ bool Reaction::decompFromMatch(ROMOL_SPTR m, const MatchVectType &match,
 			int r = getMolReact(m, idx, molreactants, molincore);
 			assert(r >= 0);
 			assert(r < (int )decomp.pieces.size());
-			if (mola->getAtomicNum() != 1) //ignore hydrogens
+			if (mola->getAtomicNum() != 1 || mola->hasProp(ATOM_MAP_NUM)) //ignore hydrogens unless they are mapped
 				decomp.pieces[r].push_back(idx);
 		}
 	}
