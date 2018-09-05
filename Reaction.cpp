@@ -271,7 +271,9 @@ ROMOL_SPTR Reaction::Decomposition::extractPiece(ROMOL_SPTR m, unsigned p, vecto
 	{
 		const Connection& conn = connections[p][i];
 		int orig = conn.reactantIndex;
-		assert(map.count(orig));
+		if(map.count(orig) == 0) {
+			return ROMOL_SPTR(); //failure
+		}
 		fragbonds.push_back(FragBondInfo(conn.order, map[orig], conn.coreMap));
 	}
 	return ret;

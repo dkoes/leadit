@@ -176,10 +176,20 @@ void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = fal
 			MOL_SPTR_VECT frags;
 			vector< vector<FragBondInfo> > fragbonds;
 			fragbonds.resize(d.pieces.size());
+			bool failed = false;
 			for (unsigned p = 0, np = d.pieces.size(); p < np; p++)
 			{
 				ROMOL_SPTR frag = d.extractPiece(m, p, fragbonds[p]); //labels connecting atoms
+				if(!frag) {
+					failed = true;
+					break;
+				}
 				frags.push_back(frag);
+			}
+			//be robust to errors, even though they shouldn't happen
+			if(failed) {
+				std::cerr << "ERROR: Failed to process decomposition of " << RDKit::MolToSmiles(*m) << "\n";
+				continue;
 			}
 
 			for (unsigned c = 0, nc = m->getNumConformers(); c < nc; c++)
