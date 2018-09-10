@@ -157,7 +157,7 @@ void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = fal
 	while (!supplier.atEnd())
 	{
 		ROMOL_SPTR mol = ROMOL_SPTR(supplier.next());
-		ROMOL_SPTR m(MolOps::addHs(*mol)); //for proper match must have hydrogens
+		ROMOL_SPTR m(MolOps::addHs(*mol,false,true)); //for proper match must have hydrogens
 
 		//compute pharmacophore features of mol and annotate atoms with feature types
 		assignPharmacophoreAtomProperties(m);

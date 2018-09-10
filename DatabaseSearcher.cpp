@@ -96,7 +96,7 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 {
 	results.clear();
 	//analyze reference compound, does it match?
-	ROMOL_SPTR m(MolOps::addHs(*ref)); //for proper match must have hydrogens
+	ROMOL_SPTR m(MolOps::addHs(*ref,false,true)); //for proper match must have hydrogens
 	results.refmol = m;
 
 	rxn.decompose(m, results.decomps);
