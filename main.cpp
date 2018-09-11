@@ -338,17 +338,25 @@ static ROMOL_SPTR readOneMol(const string& filename)
 	    exit(-1);
 		}
 	}
-	else if (filesystem::extension(filename) != ".sdf")
+	else if (filesystem::extension(filename) != ".sdf" && filesystem::extension(filename) != ".pdb")
 	{
-	  cerr << "Sorry, currently only sdf files are supported, " << filename << " does not appear to be an sdf.\n";
+	  cerr << "Sorry, currently only sdf/pdb files are supported, " << filename << " does not appear to be an sdf/pdb.\n";
 	  exit(-1);
 	}
 	in.push(inmols);
 
-	ForwardSDMolSupplier molreader(&in, false);
-	ROMOL_SPTR mol(molreader.next());
+	if(filesystem::extension(filename) != ".pdb")
+	{
+		PDBMolSupplier molreader(&in, false);
+		return ROMOL_SPTR(molreader.next());
+	}
+	else
+	{
+		ForwardSDMolSupplier molreader(&in, false);
+		return ROMOL_SPTR(molreader.next());
+	}
 
-	return mol;
+	return ROMOL_SPTR();
 }
 
 static void handle_search()
