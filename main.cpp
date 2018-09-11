@@ -371,21 +371,6 @@ static void handle_search()
 		exit(-1);
 	}
 
-	//setup databases - must all be the same, just striped
-	vector<filesystem::path> dbpaths; dbpaths.reserve(Databases.size());
-	BOOST_FOREACH(const string& dbfile, Databases)
-	{
-		dbpaths.push_back(filesystem::path(dbfile));
-	}
-
-	DatabaseSearcher searcher(dbpaths);
-
-	if(!searcher.isValid())
-	{
-		cerr << "Problem reading in database\n";
-		exit(-1);
-	}
-
 	//read in reference ligand
 	ROMOL_SPTR refmol = readOneMol(RefLigand);
 
@@ -402,6 +387,20 @@ static void handle_search()
 		big = MolecularQueryObject(*biglig, ExcludeShrink, true);
 	}
 
+	//setup databases - must all be the same, just striped
+	vector<filesystem::path> dbpaths; dbpaths.reserve(Databases.size());
+	BOOST_FOREACH(const string& dbfile, Databases)
+	{
+		dbpaths.push_back(filesystem::path(dbfile));
+	}
+
+	DatabaseSearcher searcher(dbpaths);
+
+	if(!searcher.isValid())
+	{
+		cerr << "Problem reading in database\n";
+		exit(-1);
+	}
 
 	DatabaseSearcher::Results results;
 	searcher.search(refmol, ReactantPos, small, big, results);
