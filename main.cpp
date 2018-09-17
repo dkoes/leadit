@@ -345,7 +345,7 @@ static ROMOL_SPTR readOneMol(const string& filename)
 	}
 	in.push(inmols);
 
-	if(filesystem::extension(filename) != ".pdb")
+	if(filesystem::extension(filename) == ".pdb")
 	{
 		PDBMolSupplier molreader(&in, false);
 		return ROMOL_SPTR(molreader.next());
