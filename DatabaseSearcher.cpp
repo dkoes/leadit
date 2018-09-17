@@ -8,6 +8,9 @@
 #include <DatabaseSearcher.h>
 #include <fstream>
 #include <rdkit/GraphMol/FileParsers/MolWriters.h>
+#include "CommandLine2/CommandLine.h"
+
+extern cl::opt<bool> Verbose;
 
 DatabaseSearcher::DatabaseSearcher(const vector<filesystem::path>& dbs) :
 		dbpaths(dbs)
@@ -102,6 +105,10 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 	rxn.decompose(m, results.decomps);
 	const Conformer& conf = m->getConformer();
 
+	if(Verbose)
+	{
+		cout << results.decomps.size() << " decompositions\n";
+	}
 	//for each core conformer
 	for (unsigned c = 0, nc = results.decomps.size(); c < nc; c++)
 	{
@@ -121,6 +128,10 @@ void DatabaseSearcher::search(ROMOL_SPTR ref, unsigned reactant,
 		vector<unsigned> scaffolds;
 		scaffoldIndex.findBest(coords, scaffolds); //should we check return value, or just go with best anyway?
 
+		if(Verbose)
+		{
+			cout << "\t" << scaffolds.size() << " scaffolds\n";
+		}
 		//for each match
 		BOOST_FOREACH(unsigned& s, scaffolds)
 		{
