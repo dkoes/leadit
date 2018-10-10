@@ -141,6 +141,11 @@ void FragmentSearcher::writeSDF(ROMOL_SPTR fullmol, const Reaction::Decompositio
 		}
 	}
 
+	//set name to something informative
+	string name = lexical_cast<string>(pos)+" "+lexical_cast<string>(whichr)+" ";
+	name += RDKit::MolToSmiles(*frag);
+	mol.setProp("_Name",name);
+
 	//write it out
 	RDKit::SDWriter writer(&out);
 	writer.setKekulize(false);
