@@ -156,9 +156,20 @@ void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = fal
 	int cnt = 0;
 	while (!supplier.atEnd())
 	{
-		ROMOL_SPTR mol = ROMOL_SPTR(supplier.next());
-		ROMOL_SPTR m(MolOps::addHs(*mol,false,true)); //for proper match must have hydrogens
-
+		ROMOL_SPTR mol;
+		ROMOL_SPTR m;
+		try {
+			mol = ROMOL_SPTR(supplier.next());
+			m = ROMOL_SPTR(MolOps::addHs(*mol,false,true)); //for proper match must have hydrogens
+		} catch (const std::exception& e) {
+			std::cerr << "WARNING: Could not process molecule ";
+			if(mol) {
+				std::cerr << RDKit::MolToSmiles(*mol) << "\n";
+			} else {
+				std::cerr << "\n";
+			}
+			continue;
+		}
 		//compute pharmacophore features of mol and annotate atoms with feature types
 		assignPharmacophoreAtomProperties(m);
 		vector<Reaction::Decomposition> decomps;
