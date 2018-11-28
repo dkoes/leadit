@@ -160,6 +160,7 @@ void DatabaseCreator::add(const filesystem::path& molfile, bool verbose /* = fal
 		ROMOL_SPTR m;
 		try {
 			mol = ROMOL_SPTR(supplier.next());
+			if(!mol) throw std::runtime_error("Couldn't parse mol");
 			m = ROMOL_SPTR(MolOps::addHs(*mol,false,true)); //for proper match must have hydrogens
 		} catch (const std::exception& e) {
 			std::cerr << "WARNING: Could not process molecule ";
