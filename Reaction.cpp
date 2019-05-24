@@ -8,8 +8,8 @@
 #include <Reaction.h>
 #include <iostream>
 #include <fstream>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
+#include <unordered_map>
+#include <unordered_set>
 #include <boost/graph/breadth_first_search.hpp>
 #include <rdkit/GraphMol/Subgraphs/SubgraphUtils.h>
 #include <GraphMol/Substruct/SubstructMatch.h>
@@ -40,7 +40,7 @@ Reaction::Reaction(const filesystem::path& rxfile)
 			reactants.push_back(*itr);
 		}
 		//create reverse rxn
-		ChemRxnPtr reverse = make_shared<ChemicalReaction>();
+		ChemRxnPtr reverse = std::make_shared<ChemicalReaction>();
 		reverse->addReactantTemplate(product);
 		for (unsigned i = 0, n = reactants.size(); i < n; i++)
 		{
@@ -71,7 +71,7 @@ Reaction::Reaction(const filesystem::path& rxfile)
 void Reaction::findCoreAndReactants()
 {
 	//record what atom mapping number belongs to each reactant
-	unordered_map<int, int> reactantMapNumbers;
+	std::unordered_map<int, int> reactantMapNumbers;
 	for (unsigned i = 0, n = reactants.size(); i < n; i++)
 	{
 		ROMOL_SPTR r = reactants[i];
@@ -265,7 +265,7 @@ ROMOL_SPTR Reaction::Decomposition::extractPiece(ROMOL_SPTR m, unsigned p, vecto
 	ROMOL_SPTR ret = ROMOL_SPTR(Subgraphs::atomsToSubmol(*m, atomindices, mapping));
 	copyMapNums(*m, *ret, mapping);
 
-	unordered_map<int,int> map(mapping.begin(),mapping.end());
+	std::unordered_map<int,int> map(mapping.begin(),mapping.end());
 	//store connections with new indexing
 	for(unsigned i = 0, n = connections[p].size(); i < n; i++)
 	{
@@ -534,7 +534,7 @@ void Reaction::write(ostream& out)
 	}
 	n = coreScaffoldSet.size();
 	streamWrite(out, n);
-	for(unordered_set<unsigned>::iterator itr = coreScaffoldSet.begin(),
+	for(std::unordered_set<unsigned>::iterator itr = coreScaffoldSet.begin(),
 			end = coreScaffoldSet.end(); itr != end; ++itr)
 	{
 		unsigned val = *itr;
@@ -545,7 +545,7 @@ void Reaction::write(ostream& out)
 //serialize in
 void Reaction::read(istream& in)
 {
-	reverseRxn = make_shared<ChemicalReaction>();
+	reverseRxn = std::make_shared<ChemicalReaction>();
 	ReactionPickler::reactionFromPickle(in, *reverseRxn);
 
 	product = ROMOL_SPTR(new ROMol());

@@ -28,7 +28,7 @@ class ScaffoldIndexer
 	double rmsdCutoffSq; //minimum minimized RMSD squared
 	double connectCutoffSq; //minimum unminimized RMSD to connection points squared
 	unsigned numAtoms; //number of atoms in core scaffold
-	unordered_set<unsigned> connectingMapNums; //map nums of connecting atoms
+	std::unordered_set<unsigned> connectingMapNums; //map nums of connecting atoms
 
 	struct ScaffoldInfo
 	{

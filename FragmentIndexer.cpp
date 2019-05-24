@@ -246,10 +246,10 @@ void FragmentIndexer::write(const vector<boost::filesystem::path>& outdirs)
 {
 
 	//create slices -- eventually multithread
-	vector<shared_ptr<Outputter> > writers; writers.reserve(outdirs.size());
+	vector<std::shared_ptr<Outputter> > writers; writers.reserve(outdirs.size());
 	for(unsigned i = 0, n = outdirs.size(); i < n; i++)
 	{
-		writers.push_back(make_shared<Outputter>(&fragments, outdirs[i], i, outdirs.size()));
+		writers.push_back(std::make_shared<Outputter>(&fragments, outdirs[i], i, outdirs.size()));
 		//output redundant index info as text
 		filesystem::path fragIndex = outdirs[i] / "fragIndex";
 		ofstream fragout(fragIndex.string().c_str());

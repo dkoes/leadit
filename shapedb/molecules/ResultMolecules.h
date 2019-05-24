@@ -13,7 +13,7 @@
 #include <iostream>
 #include <vector>
 #include <boost/lexical_cast.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include "PMol.h"
 #include "Results.h"
 using namespace std;
@@ -25,7 +25,7 @@ class ResultMolecules: public Results
 	vector<double> scores;
 
 	bool uniqueify; //true if should only grab one conformer
-	boost::unordered_map<string, unsigned > seen; //map titles to position for uniquification
+	std::unordered_map<string, unsigned > seen; //map titles to position for uniquification
 public:
 	ResultMolecules(bool uniq=false): uniqueify(uniq)
 	{

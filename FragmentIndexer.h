@@ -15,7 +15,7 @@
 
 #include <GraphMol/ROMol.h>
 #include <GraphMol/Conformer.h>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <boost/filesystem.hpp>
 #include <vector>
 #include <string>
@@ -107,7 +107,7 @@ class FragmentIndexer
 
 	double rmsdCutoffSq; //avoid duplicating fragments that are more similar than this
 
-	typedef boost::unordered_map<string, unsigned> FragmentMap;
+	typedef std::unordered_map<string, unsigned> FragmentMap;
 	FragmentMap fragmentPos; //indexed by smiles
 	vector< Fragment > fragments; //indexed by fragmentPos, we maintain one molecule with multiple conformers
 

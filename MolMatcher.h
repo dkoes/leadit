@@ -11,7 +11,7 @@
 #include <rdkit/GraphMol/RDKitBase.h>
 #include <rdkit/GraphMol/ROMol.h>
 #include <rdkit/Geometry/point.h>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <vector>
 
 using namespace std;

@@ -13,8 +13,10 @@
 #define PMOL_H_
 
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <openbabel/mol.h>
+#include <openbabel/atom.h>
+#include <openbabel/bond.h>
 #include <vector>
 #include <rdkit/GraphMol/ROMol.h>
 #include "../Orienter.h"

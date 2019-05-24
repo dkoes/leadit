@@ -6,7 +6,7 @@
  */
 
 #include "MatcherPacker.h"
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
 #include <lemon/full_graph.h>
 #include <lemon/matching.h>
 #include <lemon/list_graph.h>

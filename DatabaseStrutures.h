@@ -43,7 +43,7 @@ struct DataIndex
 		RDKit::streamRead(in, sminaloc);
 		RDKit::streamRead(in, pharmaloc);
 		RDKit::streamRead(in, rdmolloc);
-		return in;
+		return (bool)in;
 	}
 };
 

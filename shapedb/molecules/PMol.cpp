@@ -126,8 +126,8 @@ void PMolCreator::copyFrom(OBMol& mol, bool deleteH)
 		if(deleteH && (a1->GetAtomicNum() == 1 || a2->GetAtomicNum() == 1))
 			continue;
 
-		nDsts++; //basically nubmer of bonds
-		if(a2->GetValence() > a1->GetValence())
+		nDsts++; //basically number of bonds
+		if(a2->GetExplicitDegree() > a1->GetExplicitDegree())
 		{
 			//a2 goes first
 			if(bonds[btype][atomindex[a2->GetIdx()]].size() == 0)

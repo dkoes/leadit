@@ -147,7 +147,7 @@ protected:
 	{
 	public:
 		virtual float get(unsigned i, unsigned j) = 0;
-
+		virtual ~DCache() {}
 	};
 
 	//stores and precomputes everything

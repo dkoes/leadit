@@ -13,7 +13,6 @@
 
 #include <vector>
 #include <boost/filesystem.hpp>
-#include <boost/unordered_set.hpp>
 #include <RDGeneral/RDLog.h>
 #include <RDGeneral/utils.h>
 #include <GraphMol/RDKitBase.h>
@@ -34,7 +33,7 @@ class Reaction
 {
 public:
 	//types
-	typedef shared_ptr<ChemicalReaction> ChemRxnPtr;
+	typedef std::shared_ptr<ChemicalReaction> ChemRxnPtr;
 	struct Connection
 	{
 		//record information on the junction between fragments
@@ -81,7 +80,7 @@ private:
 	vector<ROMOL_SPTR> reactants;
 	ROMOL_SPTR core;
 	vector<int> productReactants; //what reactant each product atom belongs to
-	boost::unordered_set<unsigned> coreScaffoldSet; //set of core indices in product
+	std::unordered_set<unsigned> coreScaffoldSet; //set of core indices in product
 	vector<unsigned> connectingMapNums;
 
 	void findCoreAndReactants();

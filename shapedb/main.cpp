@@ -43,14 +43,13 @@
 #include "molecules/Molecule.h"
 #include "KSamplePartitioner.h"
 #include "packers/Packers.h"
-#include <boost/shared_ptr.hpp>
 #include "Timer.h"
 #include "MiraObject.h"
 
 using namespace std;
 using namespace boost;
 
-typedef shared_ptr<Packer> PackerPtr;
+typedef std::shared_ptr<Packer> PackerPtr;
 
 enum CommandEnum
 {

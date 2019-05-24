@@ -82,6 +82,6 @@ GSSTreeSearcher::ObjectTree MolecularQueryObject::getObjectTree(
 	if (invert) //treat as excluded vol
 		objTree->invert();
 
-	return shared_ptr<MappableOctTree>(objTree, free);
+	return std::shared_ptr<MappableOctTree>(objTree, free);
 }
 

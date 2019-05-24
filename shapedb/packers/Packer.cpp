@@ -8,7 +8,8 @@
 #include "Packer.h"
 #include "ShapeDistance.h"
 
-#include <boost/unordered_set.hpp>
+#include <boost/functional/hash.hpp>
+#include <unordered_set>
 #include <lemon/full_graph.h>
 #include <lemon/matching.h>
 #include <lemon/list_graph.h>
@@ -487,7 +488,7 @@ float Packer::makeKNNGraph(const DataViewer *D, vector<Cluster>& clusters,
 		}
 
 		typedef pair<unsigned, unsigned> UPair;
-		unordered_set<UPair> seen;
+		unordered_set<UPair, boost::hash<UPair> > seen;
 		for (unsigned i = 0; i < N; i++)
 		{
 			for (unsigned j = 0, nn = B[i].neighbors.size(); j < nn; j++)

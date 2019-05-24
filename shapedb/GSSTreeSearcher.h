@@ -22,7 +22,7 @@ static bool nofilter(const MappableOctTree* tree) { return true; } //default fil
 class GSSTreeSearcher
 {
 public:
-	typedef boost::shared_ptr<MappableOctTree> ObjectTree;
+	typedef std::shared_ptr<MappableOctTree> ObjectTree;
 	typedef bool (TreeFilter)(const MappableOctTree *tree);
 
 private:
@@ -187,7 +187,7 @@ public:
 		if (invert) //treat as excluded vol
 			objTree->invert();
 
-		return boost::shared_ptr<const MappableOctTree>(objTree, free);
+		return std::shared_ptr<const MappableOctTree>(objTree, free);
 	}
 
 	float getDimension() const
