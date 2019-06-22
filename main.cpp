@@ -382,7 +382,7 @@ static void handle_search()
 	//read in reference ligand
 	ROMOL_SPTR refmol = readOneMol(RefLigand);
 
-	MolecularQueryObject small, big(true);
+	MolecularQueryObject small, big(true, ExcludeShrink);
 
 	if(IncludeMol.size() > 0)
 	{

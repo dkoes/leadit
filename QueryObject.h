@@ -43,7 +43,7 @@ class MolecularQueryObject: public QueryObject
 	bool invert; //true if should compute negative shape (e.g. receptor)
 public:
 	MolecularQueryObject(): shrink(0), invert(false) {}
-	MolecularQueryObject(bool i): invert(i) {}
+	MolecularQueryObject(bool i, double s=0): shrink(s), invert(i) {}
 	MolecularQueryObject(const MolecularQueryObject& rhs): mol(rhs.mol), shrink(rhs.shrink), invert(rhs.invert) {}
 	MolecularQueryObject(const RDKit::ROMol& m, double s, bool i): mol(m), shrink(s), invert(i) {}
 	//create new object with m added
